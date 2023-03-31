@@ -142,6 +142,98 @@ Donde:
 - $n$: longitud de la oración
 - T: en la expresión matemática K^T, la letra T indica la operación de transposición de la matriz K. La transposición de una matriz consiste en intercambiar las filas y las columnas de la matriz, es decir, si K es una matriz de tamaño (m x n), entonces la transpuesta de K, denotada por K^T, es una matriz de tamaño (n x m), donde los elementos de la columna i de K se convierten en los elementos de la fila i de K^T. Por lo tanto, en la operación QK^T, Q es una matriz de tamaño (n x d) y K es una matriz de tamaño (m x d), donde d es la dimensión de los vectores de entrada. Después de la transposición, K^T se convierte en una matriz de tamaño (d x m), lo que permite realizar la operación de producto de punto (o producto escalar/vectorial) entre Q y K^T para obtener una matriz de tamaño (n x m) que contiene la similitud entre las consultas en Q y las claves en K.
 
+En codigo utilizando PyTorch:
+
+```python
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+# Definimos la oración de entrada
+input_sentence = "Nunca he estado en la Antártida, pero eso está en mi lista de deseos"
+
+# Convertimos la oración en una lista de palabras
+input_words = input_sentence.split()
+
+# Definimos la dimensión de los vectores de entrada
+d = 128
+
+# Creamos una instancia de nn.Embedding para generar los vectores de embedding
+embedding = nn.Embedding(len(input_words), d)
+
+# Generamos los vectores de embedding para cada palabra de entrada
+input_vectors = embedding(torch.LongTensor(range(len(input_words))))
+
+# Definimos las matrices de consulta, clave y valor
+Q = input_vectors
+K = input_vectors
+V = input_vectors
+
+# Calculamos la atención utilizando softmax
+scores = torch.matmul(Q, K.t()) / torch.sqrt(torch.tensor(d))
+attention_weights = F.softmax(scores, dim=1)
+output_vectors = torch.matmul(attention_weights, V)
+
+# Mostramos el resultado de la operación de atención
+print(output_vectors)
+tensor([[-0.9265,  1.0233, -0.2897,  ...,  0.2196,  1.6644, -0.6473],
+        [ 1.0860,  0.2047, -0.3145,  ..., -0.5502, -0.6240, -0.4559],
+        [-1.2225, -1.3630,  0.3759,  ..., -0.7909,  0.3532,  1.1266],
+        ...,
+        [ 0.1062,  1.1196, -1.0840,  ..., -0.1806, -0.1345, -1.3477],
+        [-0.7551,  0.5022,  0.3807,  ..., -0.2712, -0.2242,  0.4842],
+        [ 0.6968,  0.2501, -0.8668,  ..., -0.5559, -0.0033, -1.7683]],
+       grad_fn=<MmBackward0>)
+```
+
+En codigo, con TensorFlow:
+
+```python
+import tensorflow as tf
+
+# Definimos la oración de entrada
+input_sentence = "Nunca he estado en la Antártida, pero eso está en mi lista de deseos"
+
+# Convertimos la oración en una lista de palabras
+input_words = input_sentence.split()
+
+# Definimos la dimensión de los vectores de entrada
+d = 128
+
+# Creamos una instancia de tf.keras.layers.Embedding para generar los vectores de embedding
+embedding = tf.keras.layers.Embedding(len(input_words), d)
+
+# Generamos los vectores de embedding para cada palabra de entrada
+input_vectors = embedding(tf.range(len(input_words)))
+
+# Definimos las matrices de consulta, clave y valor
+Q = input_vectors
+K = input_vectors
+V = input_vectors
+
+# Calculamos la atención utilizando softmax
+scores = tf.matmul(Q, K, transpose_b=True) / tf.math.sqrt(tf.constant(d, dtype=tf.float32))
+attention_weights = tf.nn.softmax(scores, axis=1)
+output_vectors = tf.matmul(attention_weights, V)
+
+# Mostramos el resultado de la operación de atención
+print(output_vectors)
+tf.Tensor(
+[[ 0.0033139   0.00507426  0.00547205 ...  0.00202452 -0.01837145
+  -0.003456  ]
+ [ 0.00333045  0.005109    0.00544784 ...  0.00200186 -0.01841413
+  -0.00350031]
+ [ 0.0033486   0.00509828  0.00545489 ...  0.00204012 -0.01839903
+  -0.00349796]
+ ...
+ [ 0.00333579  0.0051146   0.00548671 ...  0.00202211 -0.01841822
+  -0.00345222]
+ [ 0.00336279  0.00509567  0.0054412  ...  0.00204145 -0.01842242
+  -0.00347955]
+ [ 0.00331269  0.00505507  0.00544502 ...  0.00203352 -0.01842565
+  -0.00350634]], shape=(14, 128), dtype=float32)
+```
+
 ## Como Query (Q), Key (K) and Value (V) vectors son generados?
 
 Una respuesta simple es mediante la multiplicación de vector a matriz con tres matrices diferentes ($W^Q, W^K, W^V$).
