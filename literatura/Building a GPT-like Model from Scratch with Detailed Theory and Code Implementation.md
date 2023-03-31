@@ -36,7 +36,7 @@ Para la tarea de traducción, primero debe codificar el texto de entrada y tener
 
 Para empezar, recordemos la arquitectura codificador-decodificador (encoder-decoder). Los modelos de lenguaje podrían clasificarse aproximadamente en solo Encoder (BERT): solo tienen los bloques Encoders, solo Decoders (GPT-x, PaLM, OPT), solo los bloques decodificadores y Encoder-Decoder (BART, T0/T5). Esencialmente, la diferencia se reduce a la tarea que está tratando de resolver:
 
-1. Las arquitecturas de solo Encoder (como BERT) resuelven la tarea de predecir la palabra enmascarada en una oración (masked word in a sentence). Entonces la atención puede ver todas las palabras antes y después de esta palabra enmascarada. Esto tiene un término "modelado de lenguaje enmascarado" ("masked language modelling"). La arquitectura del Encoder generalmente se usa para tareas de modelado de lenguaje que involucran Encoding de una secuencia de tokens de entrada y la producción de una representación de longitud fija (fixed-length), también conocida como Context Vector or Embedding, que resume la entrada. Este vector de contexto puede ser utilizado por una tarea posterior, como la traducción automática o el resumen de texto. El modelo BERT es un buen ejemplo.
+1. Las arquitecturas de solo Encoder (como BERT) resuelven la tarea de predecir la palabra enmascarada en una oración (masked word in a sentence). Entonces la atención puede ver todas las palabras antes y después de esta palabra enmascarada. Esto tiene un término "modelado de lenguaje enmascarado" ("masked language modelling"). La arquitectura del Encoder generalmente se usa para tareas de modelado de lenguaje que involucran Encoding de una secuencia de tokens de entrada y la producción de una representación de longitud fija (fixed-length), también conocida como Context Vector or Embedding[Embedding](#intro-a-embeddings), que resume la entrada. Este vector de contexto puede ser utilizado por una tarea posterior, como la traducción automática o el resumen de texto. El modelo BERT es un buen ejemplo.
 2. Para las arquitecturas de Decoder y Encoder-Decoder, la tarea es predecir el siguiente token o conjunto de tokens, es decir, los tokens dados [0, ..., n-1] predicen n. Estas arquitecturas se utilizan para tareas de modelado de lenguaje que implican generar una secuencia de tokens de salida basados en un vector de contexto de entrada (input context vector).
 
 En el artículo Attention is all you need, el Encoder y el Decoder están representados por seis capas (el número puede ser cualquiera, por ejemplo, en BERT hay 24 bloques Encoders).
@@ -46,6 +46,72 @@ Cada Encoder consta de dos capas: Self-Atention y Feed Forward Neural Network. L
 A medida que el modelo procesa cada token (cada palabra en la secuencia de entrada), la capa de Self-Attention le permite buscar pistas en los otros tokens en la secuencia de entrada que pueden ayudar a mejorar la Encoding de esa palabra. En la capa totalmente conectada, la red neuronal de alimentación directa (Feed Forward Neural Network) no interactúa con otras palabras y, por lo tanto, se pueden ejecutar varias cadenas en paralelo a medida que pasan por esta capa. Esta es una de las principales características de Transformers, que les permite procesar todas las palabras del texto de entrada en paralelo.
 
 [ver Encoder stack imagen 1](https://habrastorage.org/r/w1560/getpro/habr/upload_files/112/b04/0dc/112b040dc5607959986bc0d48d3c6124.png)
+
+### <a name="intro-a-embeddings"></a>Breve introducción a los Embeddings (incrustaciones)
+
+Una matriz de Embeddings en Python es simplemente una tabla de números que representa las palabras de entrada en un modelo de lenguaje natural. Cada fila de la matriz representa una palabra diferente y cada columna representa una dimensión de características diferentes.
+
+Por ejemplo, si tenemos las palabras de entrada "hello" y "world", y queremos crear una matriz de embeddings con dos dimensiones de características, la matriz podría verse así:
+
+```
+    | dim1 | dim2 |
+-------------------
+hello| 0.2  | 0.1  |
+-------------------
+world| 0.3  | 0.5  |
+```
+
+En esta matriz, la fila "hello" representa el vector de embedding para la palabra "hello", y contiene dos valores que representan las dos dimensiones de características/features (en este caso, 0.2 y 0.1). De manera similar, la fila "world" representa el vector de embedding para la palabra "world", y contiene dos valores que representan las dos dimensiones de características/features (en este caso, 0.3 y 0.5).
+
+Una analogía para entender mejor las matrices de embeddings podría ser pensar en ellas como una tabla de coordenadas que representa la ubicación de cada palabra en un espacio de características/features. Cada palabra se representa como un punto en este espacio de características/features y las coordenadas de cada punto se corresponden con los valores de su vector de embedding en cada dimensión de características/features.
+
+Las características (o features) son las diferentes propiedades o aspectos de una palabra que se utilizan para representarla en un modelo de lenguaje natural. En el ejemplo anterior de la matriz de embeddings para las palabras "hello" y "world", las características o features podrían ser cualquier cosa que se utilice para representar estas palabras, como por ejemplo la longitud de la palabra, el número de vocales, la frecuencia con la que aparece en un corpus de texto, entre otros.
+
+Por ejemplo, si utilizamos la longitud de la palabra y la frecuencia con la que aparece en un corpus de texto como nuestras características, la matriz de embeddings para las palabras "hello" y "world" podría verse así:
+
+```
+    | Longitud | Frecuencia |
+-----------------------------
+hello|    5    |   0.002    |
+-----------------------------
+world|    5    |   0.003    |
+```
+
+En esta matriz, la columna "Longitud" representa la longitud de cada palabra, mientras que la columna "Frecuencia" representa la frecuencia con la que cada palabra aparece en un corpus de texto. Los valores en cada celda representan la longitud o la frecuencia de cada palabra, normalizados o escalados de alguna manera para ser utilizados como features en el modelo.
+
+Estas características se utilizan para representar cada palabra de entrada como un vector de números, es decir, como un punto en un espacio de características. En este caso, el vector de embedding para la palabra "hello" podría ser `(5, 0.002)`, mientras que el vector de embedding para la palabra "world" podría ser `(5, 0.003)`. Estos vectores de embeddings se utilizan como entrada para el modelo de lenguaje natural y se procesan para generar la salida deseada, como la predicción de la siguiente palabra en una oración o la clasificación de un texto.
+
+Para crear embeddings utilizando "hello world" como input word en un modelo Transformer, podemos utilizar diversas librerías de procesamiento de lenguaje natural en Python, como por ejemplo spaCy, TensorFlow, PyTorch, Gensim, etc.
+
+A continuación, te mostraré un ejemplo utilizando la librería spaCy para crear embeddings de las palabras "hello" y "world":
+
+```python
+import spacy
+
+# Cargamos el modelo de lenguaje de spaCy en inglés
+nlp = spacy.load('en_core_web_sm')
+
+# Definimos las palabras de entrada
+input_words = ['hello', 'world']
+
+# Creamos un arreglo de vectores de embeddings para cada palabra de entrada
+embeddings = []
+
+# Generamos los embeddings para cada palabra utilizando el modelo de spaCy
+for word in input_words:
+    embedding = nlp(word).vector
+    embeddings.append(embedding)
+
+# Mostramos los embeddings generados para cada palabra de entrada
+print(embeddings)
+
+
+# El resultado de este código sería un arreglo de vectores de embeddings de dos elementos, cada uno con una longitud de 300 (que es la dimensión de características utilizada por el modelo de spaCy en inglés):
+[array([-1.8676002 ,  0.74291   , ...,  1.2458001 , -0.30633   ],
+      dtype=float32),
+ array([ 0.16164 ,  0.22146 , ..., -0.047529, -0.16768 ],
+      dtype=float32)]
+```
 
 ## Algunas palabras más sobre la atención
 
@@ -118,3 +184,9 @@ Los vectores de consulta y clave (Query y Key) se utilizan para calcular los pes
 [ver imagen 3.](https://habrastorage.org/r/w1560/getpro/habr/upload_files/1f4/1c4/349/1f41c434987bcfa2bd5f23448c8aded7.png)
 
 ## Misma lógica pero en forma de matriz
+
+Podemos presentar los mismos vectores de Query, Key y Value ($q, k, v$) en forma de matriz para todos los tokens de entrada (palabras) a la vez. Y ese es el poder de la arquitectura Transformer: podemos procesar todas las palabras de entrada a la vez.
+
+$X [N × d_{model}]$ es una matriz de Embeddings para las palabras de entrada (en nuestro caso, embeddings de las dos palabras "Hola" y "mundo").
+
+[ver imagen 4.](https://habrastorage.org/r/w1560/getpro/habr/upload_files/c52/1f9/5bd/c521f95bdb84708ee8098a6055809ba1.png)
