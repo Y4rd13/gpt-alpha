@@ -279,6 +279,47 @@ Los vectores de consulta y clave (Query y Key) se utilizan para calcular los pes
 
 Podemos presentar los mismos vectores de Query, Key y Value ($q, k, v$) en forma de matriz para todos los tokens de entrada (palabras) a la vez. Y ese es el poder de la arquitectura Transformer: podemos procesar todas las palabras de entrada a la vez.
 
-$X [N × d_{model}]$ es una matriz de Embeddings para las palabras de entrada (en nuestro caso, embeddings de las dos palabras "Hola" y "mundo").
+$X[N × d_{model}]$ - es una matriz de Embeddings para las palabras de entrada (en nuestro caso, embeddings de las dos palabras "Hola" y "mundo").
+
+$W[d_{model} × d_{k}]$ - matrices de peso inicializadas aleatoriamente.
+
+$Q[N × d_{q}]$ - la matriz de Query vectors.
+
+$K[N × d_{k}]$ - la matriz de Key vectors.
+
+$V[N × d_{v}]$ - la matriz de Value vectors.
+
+$N$ - número de tokens en una secuencia de entrada (input sequence).
+
+$d_{v}$ - dimensión de los vectores de valor (Value).
+
+$d_{k}$ = $d_{q}$ - dimensión de los vectores de consulta (Query) y clave (Key).
+
+$d_{model}$ - dimensión de las hidden layers o de las dimensiones de los token embeddings.
+
+$h$ = número de cabezas de multi-atención (number of heads of multi-head attention)
+
+$Q = XW^{Q}$, $K = XW^{K}$, $V = XW^{V}$ - la transformación de las matrices de entrada.
+
+Para la imagen 4, $x0$ es el vector de embedding para la palabra "Hola", $x1$ es el vector de embedding para la palabra "mundo".
+
+En el articulo el $d_{model} = 512$ (en nuestra imagen 4 - 5 cuadrados), $d_{k}$ = $d_{q}$ = $d_{v}$ = $d_{model}$/h = 64 (3 cuadrados).
 
 [ver imagen 4.](https://habrastorage.org/r/w1560/getpro/habr/upload_files/c52/1f9/5bd/c521f95bdb84708ee8098a6055809ba1.png)
+
+## Ahora calculemos la matriz de Atención
+
+Una vez que obtengamos nuestras matrices $Q$, $K$ y $V$, ahora podemos calcular la matriz para las puntuaciones de atención. La puntuación determina cuánto enfoque aplicamos en otras partes de la oración de entrada a medida que codificamos una palabra en una posición determinada.
+
+[ver imagen 5](https://habrastorage.org/r/w1560/getpro/habr/upload_files/ff4/abe/48b/ff4abe48b19ae376f05fb4745c719537.png)
+
+La fórmula matemática para calcular la matriz de atención es la siguiente:
+
+$A_(Q, K, V) = softmax(\frac{QK^T}{\sqrt{d_{k}}})V = Z$
+
+Donde:
+
+- $Q$, $K$ y $V$ son matrices de consulta, clave y valor, respectivamente.
+- $d_k$ es la dimensión de la matriz de clave $K$.
+- $softmax$ es la función de normalización utilizada para obtener los pesos de atención normalizados.
+- $Z$ es la matriz resultante de la operación de atención.
