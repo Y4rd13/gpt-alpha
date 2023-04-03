@@ -323,3 +323,36 @@ Donde:
 - $d_k$ es la dimensión de la matriz de clave $K$.
 - $softmax$ es la función de normalización utilizada para obtener los pesos de atención normalizados.
 - $Z$ es la matriz resultante de la operación de atención.
+
+### Paso por paso:
+
+[ver imagen 6](https://habrastorage.org/r/w1560/getpro/habr/upload_files/d87/27d/3c0/d8727d3c05fde16c30e6e2a2629b882f.png)
+
+1. Primer paso: multiplicar Q y matriz clave transpuesta. Cada vector de consulta/Query ("Hola" y "mundo") es `DotProducted` (producto punto) con los vectores de palabras de cada una de las claves. Esto es similar al proceso de recuperación, cuando encuentra el video de YouTube que mejor se adapta según la consulta (Query) y las claves/Keys como el título del video, la descripción. El resultado sería una matriz $(N * N)$ donde $N$ es el tamaño de la oración de entrada (size of the input sentence), es decir, el número de tokens. En nuestro caso es $(2 * 2)$.
+
+   Aquí $m_{0} = (q_{0} * k_{0}, q_{0} * k_{1})$ representa el vector de puntuación/score de atención de la palabra "Hola". En esencia, dice que la relevancia de la primera palabra de la oración ("Hola") para la Query "Hola" es $(q_{0} * k_{0})$ y la relevancia de la segunda palabra de la oración ("mundo") para la Query "Hola" es $(q_{0} * k_{1})$. De manera similar, $m_{1} = (q_{1} * k_{0}, q_{1} * k_{1})$ representa el vector de puntaje/score de atención de la palabra "mundo". También escalamos los valores de la matriz resultante por la raíz cuadrada del tamaño de $K$ para tener gradientes más estables.
+
+2. Segundo paso: tome un $softmax$ en cada fila de la matriz resultante (en nuestro caso, los vectores $m_{0}$ y $m_{1}$). $Softmax$ normaliza los puntajes para que todos sean positivos y sumen 1 seguido.
+
+3. Tercer paso - es sumar los vectores de valores ponderados. Esto produce la salida de la capa de autoatención en esta posición.
+
+[ver imagen 7](https://habrastorage.org/r/w1560/getpro/habr/upload_files/e4a/2e3/bb4/e4a2e3bb4a63161337329f43bc137e07.png)
+
+Así que tenemos nuestra matriz normalizada de pesos $m'$ del Paso 2. Luego obtenemos la autoatención como la suma ponderada de los vectores de Values. Este último paso da como resultado una única representación vectorial de palabra de salida de cada palabra de entrada.
+
+Ahora podemos repetir esta lógica agregando un nuevo bloque de atención (attention block) al Encoder. Podemos tomar la matriz resultante $Z$ (a.k.a. "hidden vectors") y considerarla como entradas para la nueva capa de atención (attention layer), que tendrá como output resultante $Z_{1}$ con nuevos vectores de palabras propios. En el documento original, el Encoder está representado por seis bloques de este tipo, pero podría ser cualquier número (por ejemplo, en BERT hay 24 bloques Encoders).
+
+Resumiéndolo señalando que cada token (de consulta/Query) es libre de tomar tanta información usando el mecanismo de _producto punto_ de las otras palabras (sus valores/Values), y puede prestar tanta o tan poca atención a las otras palabras como quiera al ponderar (weighting) las otras palabras con las Claves/Keys.
+
+De manera más resumida y simple, el proceso de atención en la arquitectura Transformer consiste en tres pasos.
+
+1. En primer lugar, se realiza una multiplicación de punto entre la matriz de consulta y la matriz de clave transpuesta para obtener una matriz de puntuaciones de atención. Esto se asemeja al proceso de recuperación en el que se encuentra el video de YouTube que mejor se ajusta a la consulta (Query) y las claves/Keys como el título del video, la descripción.
+2. En segundo lugar, se aplica una función $softmax$ a cada fila de la matriz de puntuaciones para normalizar los puntajes para que todos sean positivos y sumen 1.
+3. En tercer lugar, se calcula la suma ponderada de los vectores de valor utilizando los puntajes normalizados como pesos para obtener una única representación vectorial de la palabra de salida. Este proceso se repite para cada token de la oración de entrada y se puede agregar más bloques de atención al Encoder para obtener nuevas representaciones vectoriales de palabras.
+
+- En resumen:
+
+  - el mecanismo de atención en el modelo Transformer permite que cada palabra de una oración preste atención (enfoque) en diferentes partes de la oración para obtener una representación más rica y contextual. Cada palabra (token) tiene su propia clave y valor (que se obtienen a través de una capa de embedding), y se multiplica por una consulta (query) para obtener un puntaje de atención. Este puntaje de atención se normaliza con softmax para que los valores sumen 1 y se utiliza para ponderar los valores de las palabras (los valores originales del embedding) para obtener una representación contextualizada de cada palabra.
+
+- En otras palabras:
+  - cada palabra en una oración puede decidir cuánta atención prestar a las otras palabras en función de su relevancia para la tarea en cuestión, lo que permite una representación más detallada y rica de la oración en su conjunto.
