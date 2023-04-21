@@ -1,4 +1,4 @@
-from layers import TransformerModel
+from model import TransformerModel
 
 def main():
     params = {
