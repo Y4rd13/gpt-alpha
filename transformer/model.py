@@ -33,6 +33,7 @@ class TransformerModel:
         e_x = np.exp(x - np.max(x))
         return e_x / e_x.sum(axis=-1, keepdims=True) # keepdims to keep same shape and axis=-1 to sum over last axis
 
+
 class LinearLayer:
     def __init__(self, 
                  input_dim: int, # input dimension of the layer (number of neurons in the previous layer)

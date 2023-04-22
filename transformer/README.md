@@ -72,9 +72,7 @@ $$\mathbf{E'}_{n \times d}=E_{n \times d} + PE_{pos \times i}$$
 
 This class implements a linear layer of a linear layer model. The linear layer class takes as input the dimensions of the layer as n and d so LinearLayer : $\mathbb{N}^2 \rightarrow \mathbb{R}^{n,d}$
 
-## `__init__(self, input_dim: int, output_dim: int)`
-
-<!-- First we initialize the `weight` and the scale of the linear layer.
+<!-- ## `__init__(self, input_dim: int, output_dim: int)` First we initialize the `weight` and the scale of the linear layer.
 The `weight` $\mathbf{W}_{m \times k}$ is initialized randomly using a normal distribution and the `scale` is initialized using the square root of the output dimension. The `scale` is used to normalize the output scores scaling factor $\sqrt{k}$ as follows:
 
 $\mathbf{W}_{m \times k} \rightarrow \mathbf{W}_{m \times k} / \sqrt{k}$ -->
@@ -100,4 +98,4 @@ Where:
 
 <!-- $\frac{$X*{n \times d} \cdot $\mathbf{W}_{m \times k}}{X}$ -->
 
----
+# `MultiHeadAttention(LinearLayer).__init__(self, len_input_text, d_model, *args, **kwargs)`
