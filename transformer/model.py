@@ -10,7 +10,6 @@ class TransformerModel:
         pos_enc = self.__get_positional_encoding(initial_embedding=initial_emb)
         positional_embedding = np.add(initial_emb, pos_enc)
         return positional_embedding
-        
     
     def __get_positional_encoding(self):
         embedding_dim = self.d_model
