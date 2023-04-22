@@ -94,6 +94,7 @@ Where:
 - $X_{n \times d}$: is the input tensor of size $n \times m$ using a weight matrix $\mathbf{W}_{d \times k}$.
 - $\mathbf{W}_{d \times k}$: is the randomly initialized using a normal distribution with mean 0 and standard deviation 1. And has a shape (dimension) of $m \times k$. Where $d_{in}$ denotes the input dimension of the layer (i.e., the number of neurons in the previous layer).
 - $k$ is the number of features (dimensions) in the input tensor given by the number of neurons.
+<!-- Verificar si es correcto que hable de la desviacion standard -->
 - The scaling factor $\frac{1}{\sqrt{d_{out}}}$ is used to normalize the output scores and is equivalent to the standard deviation of the output when the input is randomly initialized.
 
 <!-- $\frac{$X*{n \times d} \cdot $\mathbf{W}_{m \times k}}{X}$ -->
