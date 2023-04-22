@@ -99,3 +99,5 @@ Where:
 - The scaling factor $\frac{1}{\sqrt{d_{out}}}$ is used to normalize the output scores and is equivalent to the standard deviation of the output when the input is randomly initialized.
 
 <!-- $\frac{$X*{n \times d} \cdot $\mathbf{W}_{m \times k}}{X}$ -->
+
+---
