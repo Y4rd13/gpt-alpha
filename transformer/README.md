@@ -100,3 +100,7 @@ Where:
 <!-- $\frac{$X*{n \times d} \cdot $\mathbf{W}_{m \times k}}{X}$ -->
 
 # `MultiHeadAttention(LinearLayer).__init__(self, len_input_text, d_model, *args, **kwargs)`
+
+We start initializing the weights for the query, key and value using the LinearLayer class. The query, key and value are initialized with the same dimension of the embedding matrix $\mathbf{E}_{n \times d}$.
+
+# `forward(self, x)`
