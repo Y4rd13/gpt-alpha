@@ -70,7 +70,7 @@ $$\mathbf{E'}_{n \times d}=E_{n \times d} + PE_{pos \times i}$$
 
 # `LinearLayer.__init__(self, input_dim: int, output_dim: int)`
 
-This class implements a linear layer of a linear layer model. The linear layer class takes as input the dimensions of the layer as n and d so LinearLayer : $\mathbb{N}^2 \rightarrow \mathbb{R}^{n,d}$
+This class implements a linear layer of a linear layer model. The linear layer class takes as input the dimensions of the layer as n and d so LinearLayer : $\mathbb{N}^2 \rightarrow \mathbb{R}^{n,d}$,V
 
 <!-- ## `__init__(self, input_dim: int, output_dim: int)` First we initialize the `weight` and the scale of the linear layer.
 The `weight` $\mathbf{W}_{m \times k}$ is initialized randomly using a normal distribution and the `scale` is initialized using the square root of the output dimension. The `scale` is used to normalize the output scores scaling factor $\sqrt{k}$ as follows:
@@ -81,7 +81,7 @@ $\mathbf{W}_{m \times k} \rightarrow \mathbf{W}_{m \times k} / \sqrt{k}$ -->
 
 This method implements the forward pass of the linear layer, which is a simple matrix multiplication between the input $X_{n \times d}$ and the weight $\mathbf{W}_{d \times k}$ to obtain the output. The output is then scaled by the `scale` of the linear layer.
 
-$$\mathbb{R^{n \times m}} \rightarrow\mathbb{R^{n \times k}}$$
+$$\mathbb{R^{n \times d}} \rightarrow\mathbb{R^{d \times k}}$$
 
 The function takes a tensor of size $n \times m$ and return a tensor of size $n \times k$, where $k$ is the output dimension layer.
 
@@ -91,8 +91,8 @@ $$\text{forward}(X_{n \times d}) = \frac{X_{n \times d} \cdot \mathbf{W}_{d \tim
 
 Where:
 
-- $X_{n \times d}$: is the input tensor of size $n \times m$ using a weight matrix $\mathbf{W}_{d \times k}$.
-- $\mathbf{W}_{d \times k}$: is the randomly initialized using a normal distribution with mean 0 and standard deviation 1. And has a shape (dimension) of $m \times k$. Where $d_{in}$ denotes the input dimension of the layer (i.e., the number of neurons in the previous layer).
+- $X_{n \times d}$: is the input tensor of size $n \times d$ using a weight matrix $\mathbf{W}_{d \times k}$.
+- $\mathbf{W}_{d \times k}$: is the randomly initialized using a normal distribution with mean 0 and standard deviation 1. And has a shape (dimension) of $d \times k$. Where $d_{in}$ denotes the input dimension of the layer (i.e., the number of neurons in the previous layer).
 - $k$ is the number of features (dimensions) in the input tensor given by the number of neurons.
 <!-- Verificar si es correcto que hable de la desviacion standard -->
 - The scaling factor $\frac{1}{\sqrt{d_{out}}}$ is used to normalize the output scores and is equivalent to the standard deviation of the output when the input is randomly initialized.
