@@ -36,7 +36,8 @@ class Encoder(MultiHeadAttention):
     
 
 if __name__ == '__main__':
-    encoder = Encoder(d_model=5, heads=3)
+    encoder = Encoder(d_model=4, heads=2)
     x = encoder.execute(input_text='hello world')
+    print('Result:')
     print(x)
     print('Success!')

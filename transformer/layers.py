@@ -12,11 +12,7 @@ class LinearLayer:
         
     def forward(self, x):
         # Calculate dot product between the input (x) and the weight (w)
-        print(f'x shape: {x.shape}')
-        print(f'weight shape: {self.weight.shape}')
         output = np.matmul(x, self.weight.T)
-        print(f'output shape: {output.shape}')
-        print('-'*50)
 
         return output
 class ScaledDotProduct(LinearLayer):
@@ -76,8 +72,8 @@ class MultiHeadAttention(ScaledDotProduct):
 
         # Concatenate
         concat_value = np.concatenate(filtered_value, axis=0) # axis=0 to concatenate vertically and axis=1 to concatenate horizontally
-        
+
         # Apply linear layer
-        output = scaled_dot_prod.Wo.forward(concat_value)
+        output = scaled_dot_prod.Wo.forward(concat_value.T)
 
         return output
