@@ -1,11 +1,23 @@
 import numpy as np
-
+# from model import encoder
+'''
+python .\transformer\model.py
+Traceback (most recent call last):
+  File "D:\Documentos\Proyectos\GPT-alpha\transformer\model.py", line 2, in <module>
+    from layers import *
+  File "D:\Documentos\Proyectos\GPT-alpha\transformer\layers.py", line 2, in <module>
+    from model import encoder
+  File "D:\Documentos\Proyectos\GPT-alpha\transformer\model.py", line 6, in <module>
+    class Encoder(MultiHeadAttention):
+NameError: name 'MultiHeadAttention' is not defined
+'''
 class PositionalEmbedding:
     def __init__(self, d_model: int, *args, **kwargs):
         self.d_model = d_model
     
     def call(self, input_text: str):
         # Get initial embedding and positional encoding
+        
         initial_embedding = self.__get_rand_embedding(input_text)
         positional_encoding = self.__get_positional_encoding()
         positional_embedding = np.add(initial_embedding, positional_encoding)
@@ -26,7 +38,7 @@ class PositionalEmbedding:
     def __get_rand_embedding(self, input_text: str):
         # random initial weights
         self.len_input_text = len(input_text.split())
-        initial_embedding = np.random.rand(self.len_input_text, self.d_model)
+        initial_embedding = np.random.randn(self.len_input_text, self.d_model)
         return initial_embedding
 
 class LinearLayer:
@@ -37,7 +49,7 @@ class LinearLayer:
         # initialize weight randomly and using a normal distribution
         weight_size = (input_dim, output_dim)
         weight_total_elements = np.prod(weight_size)
-        self.weight = np.random.rand(weight_total_elements).reshape(weight_size)
+        self.weight = np.random.randn(weight_total_elements).reshape(weight_size)
         
     def forward(self, x):
         # Calculate dot product between the input (x) and the weight (w)
@@ -67,7 +79,6 @@ class ScaledDotProduct(LinearLayer):
 
         # Calculate attention scores
         output = np.matmul(query, key.T)
-        # output /= output/np.sqrt(shape(output)[0], shape(output)[1])
         
         # Normalization of the output scores
         scores = output / np.sqrt(self.output_dim)
@@ -91,62 +102,69 @@ class MultiHeadAttention(ScaledDotProduct):
         super().__init__(positional_embedding, len_input_text, d_model, output_dim, mask, *args, **kwargs)
         self.len_input_text = len_input_text
         self.d_model = d_model
+
+        # Create multi-head attention object with Q, K, V, and output weights
+        self.scaled_dot_prod = ScaledDotProduct(positional_embedding=self.positional_embedding, len_input_text=self.len_input_text, d_model=self.d_model, output_dim=self.d_model)
     
     def forward(self):
-        # Create multi-head attention object with Q, K, V, and output weights
-        scaled_dot_prod = ScaledDotProduct(positional_embedding=self.positional_embedding, len_input_text=self.len_input_text, d_model=self.d_model, output_dim=self.d_model)
-
         # Apply multi-head attention
-        filtered_value = [scaled_dot_prod.forward(), scaled_dot_prod.forward()] # * self.heads
+        filtered_value = [self.scaled_dot_prod.forward(), self.scaled_dot_prod.forward()] # * self.heads
 
         # Concatenate
         concat_value = np.concatenate(filtered_value, axis=0) # axis=0 to concatenate vertically and axis=1 to concatenate horizontally
 
         # Apply linear layer
-        output = scaled_dot_prod.Wo.forward(concat_value.T)
+        output = self.scaled_dot_prod.Wo.forward(concat_value.T)
 
         return output
     
 class AddAndNorm():
     def __init__(self, input_dim: int):
         self.input_dim = input_dim
+        
 
-    def forward(self, x, residual):
+    def forward(self, x, pos_embeding, multi_head_output, residual):
+        # Adds the positional embedding and the multi head attention output.
+        x = pos_embeding + multi_head_output
         # Calculate mean and variance of input x
         mean = np.mean(x, axis=1, keepdims=True)
         var = np.var(x, axis=1, keepdims=True)
-
+        
         # Normalize
-        # ...
+        x_norm = (x - mean) / np.sqrt([i** 2 + 1e-8 for i in var]) # 1e-8 to avoid division by zero
 
         # Scale
-        output = 'meow' # !!!
+        output = x_norm * self.input_dim
 
         # Add residual connection
-        output += residual
+        output += residual #encoder.positional_embedding
 
         return output
 
-        
 class FeedForward(LinearLayer):
-    def __init__(self, activation: str):
+    def __init__(self, input_dim: int, output_dim: int, activation: str):
+        self.linear_layer_1 = LinearLayer(input_dim, output_dim)
+        self.linear_layer_2 = LinearLayer(input_dim, output_dim)
         self.activation = activation
 
     def forward(self, x):
         # Apply linear layer
-        linear_layer_1 = LinearLayer.forward(x)
+        linear_layer_1 = self.linear_layer_1.forward(x)
 
         # Apply activation function 
-        linear_layer_active = self.activation_layer(linear_layer_1)
+        linear_layer_1_act = self.activation_layer(linear_layer_1)
 
         # Apply linear layer
-        linear_layer_2 = LinearLayer.forward(linear_layer_active)
+        linear_layer_2 = self.linear_layer_2.forward(linear_layer_1_act)
 
         return linear_layer_2
     
     def activation_layer(self, x):
         if self.activation == 'relu':
-            np.maximum(0, x)
+            out = np.maximum(0, x)
         elif self.activation == 'gelu':
-            # Apply gelu
-            pass
+            out = 0.5 * x * (1 + np.tanh(np.sqrt(2 / np.pi) * (x + 0.044715 * np.power(x, 3))))
+        elif self.activation == 'tanh':
+            out = np.tanh(x)
+
+        return out
