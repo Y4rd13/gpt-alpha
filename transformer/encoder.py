@@ -3,7 +3,9 @@
 TODO:
     - Define the input_dim and output_dim for the AddAndNorm layer and FeedForward layer.
 '''
+import sys
 from layers import *
+from utils import handle_error
 class Transformer:
     pass
 
@@ -25,14 +27,36 @@ class Encoder(MultiHeadAttention):
                                                   heads=self.heads).forward()
         
         self.add_norm = AddAndNorm(input_dim=self.d_model)
-        #self.add_and_norm_output = self.add_norm.forward(pos_embeding=self.positional_embedding, multi_head_output=self.multi_head_attn, residual=self.positional_embedding)
+        self.add_and_norm_output = self.add_norm.forward(pos_embeding=self.positional_embedding, multi_head_output=self.multi_head_attn, residual=self.positional_embedding)
         #self.feed_forward_output = FeedForward(input_dim=self.d_model, output_dim=self.d_model, activation='relu').forward(x=self.add_and_norm_output)
 
 if __name__ == '__main__':
-    encoder = Encoder(d_model=4, heads=2)
-    x = encoder.call(input_text='hello world')
-    print('Result:')
-    print(x)
-    #print('Add and norm output:')
-    #print(encoder.add_and_norm_output)
-    print('Success!')
+    heads = 2
+    input_text = 'hello world'
+
+    for i in range(1, 10):
+        d_model = 2**i
+
+        try:
+            print(f'Iteration: {i}')
+            encoder = Encoder(d_model, heads)
+            encoder_result = encoder.call(input_text)
+            print(f'Encoder result: {encoder_result}')
+
+            with open('transformer/logs/logs.log', 'a') as f:
+                f.write(f'Iteration: {i} . d_model: {d_model}\n')
+                f.write(f'Encoder result: {encoder_result}\n')
+                f.write('-' * 50 + '\n')
+
+        except Exception as err:
+            err = str(err)
+            handle_error(err)
+            with open('transformer/logs/error.log', 'a') as f:
+                f.write(f'Iteration: {i} . d_model: {d_model}\n') 
+                f.write(f'Error: {err}\n')
+
+                if err == 'integer division result too large for a float':
+                    error_raise_message = f'Maximum floating point number exceeded. Try to reduce the value of d_model.\nCurrent maximum floating point number: {sys.float_info.max}\n'
+                    f.write(error_raise_message)
+                    raise Exception(error_raise_message)
+                f.write('-'*50 + '\n')

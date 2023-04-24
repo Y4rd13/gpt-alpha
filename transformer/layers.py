@@ -100,19 +100,17 @@ class MultiHeadAttention(ScaledDotProduct):
     
     def forward(self):
         # Apply multi-head attention
-        filtered_value = [self.scaled_dot_prod.forward() for _ in range(self.heads)] # * self.heads 
+        filtered_value = np.array([self.scaled_dot_prod.forward() for _ in range(self.heads)]) # * self.heads 
 
         # Concatenate
-        concat_value = np.concatenate(filtered_value, axis=0) # axis=0 to concatenate vertically and axis=1 to concatenate horizontally
-        print(f'concat_value: {concat_value.shape}')
+        # axis=0 to concatenate vertically, axis=1 to concatenate horizontally, axis=-1 to concatenate over the last axis
+        concat_value = np.concatenate(filtered_value, axis=0) 
+        #print(f'concat_value: {concat_value.shape}')
+        #print(f'filtered_value: {filtered_value}')
 
         # Apply linear layer
-        print(f'filtered_value: {filtered_value}')
-        try:
-            output = self.scaled_dot_prod.Wo.forward(concat_value.T)
-        except:
-            output = filtered_value
-
+        output = self.scaled_dot_prod.Wo.forward(concat_value.T)
+        
         return output
     
 class AddAndNorm:
@@ -125,8 +123,8 @@ class AddAndNorm:
         # assert self.normalized_shape == x.shape[-len(self.normalized_shape):]
         
         # Adds the positional embedding and the multi head attention output.
-        print(f'pos_embeding: {pos_embeding}')
-        print(f'multi_head_output: {multi_head_output}')
+        #print(f'pos_embeding: {pos_embeding} . shape {pos_embeding.shape}')
+        #print(f'multi_head_output: {multi_head_output} . shape: {multi_head_output.shape}')
         x = pos_embeding + multi_head_output # ValueError: operands could not be broadcast together with shapes (2,4) (2,2)
         # Calculate mean and variance of input x
         mean = np.mean(x, axis=1, keepdims=True)
