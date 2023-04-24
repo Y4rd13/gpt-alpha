@@ -1,16 +1,7 @@
+'''
+https://nn.labml.ai/normalization/layer_norm/index.html
+'''
 import numpy as np
-# from model import encoder
-'''
-python .\transformer\model.py
-Traceback (most recent call last):
-  File "D:\Documentos\Proyectos\GPT-alpha\transformer\model.py", line 2, in <module>
-    from layers import *
-  File "D:\Documentos\Proyectos\GPT-alpha\transformer\layers.py", line 2, in <module>
-    from model import encoder
-  File "D:\Documentos\Proyectos\GPT-alpha\transformer\model.py", line 6, in <module>
-    class Encoder(MultiHeadAttention):
-NameError: name 'MultiHeadAttention' is not defined
-'''
 class PositionalEmbedding:
     def __init__(self, d_model: int, *args, **kwargs):
         self.d_model = d_model
@@ -108,30 +99,40 @@ class MultiHeadAttention(ScaledDotProduct):
     
     def forward(self):
         # Apply multi-head attention
-        filtered_value = [self.scaled_dot_prod.forward(), self.scaled_dot_prod.forward()] # * self.heads
+        filtered_value = [self.scaled_dot_prod.forward()]#, self.scaled_dot_prod.forward()] # * self.heads
 
         # Concatenate
         concat_value = np.concatenate(filtered_value, axis=0) # axis=0 to concatenate vertically and axis=1 to concatenate horizontally
+        print(f'concat_value: {concat_value.shape}')
 
         # Apply linear layer
-        output = self.scaled_dot_prod.Wo.forward(concat_value.T)
+        print(f'filtered_value: {filtered_value}')
+        try:
+            output = self.scaled_dot_prod.Wo.forward(concat_value.T)
+        except:
+            output = filtered_value
 
         return output
     
-class AddAndNorm():
+class AddAndNorm:
     def __init__(self, input_dim: int):
         self.input_dim = input_dim
+        self.epsilon = 1e-8
         
 
     def forward(self, x, pos_embeding, multi_head_output, residual):
+        # assert self.normalized_shape == x.shape[-len(self.normalized_shape):]
+        
         # Adds the positional embedding and the multi head attention output.
-        x = pos_embeding + multi_head_output
+        print(f'pos_embeding: {pos_embeding}')
+        print(f'multi_head_output: {multi_head_output}')
+        x = pos_embeding + multi_head_output # ValueError: operands could not be broadcast together with shapes (2,4) (2,2)
         # Calculate mean and variance of input x
         mean = np.mean(x, axis=1, keepdims=True)
         var = np.var(x, axis=1, keepdims=True)
         
         # Normalize
-        x_norm = (x - mean) / np.sqrt([i** 2 + 1e-8 for i in var]) # 1e-8 to avoid division by zero
+        x_norm = (x - mean[:, np.newaxis]) / np.sqrt([i**2 + self.epsilon for i in var]) # 1e-8 to avoid division by zero
 
         # Scale
         output = x_norm * self.input_dim
