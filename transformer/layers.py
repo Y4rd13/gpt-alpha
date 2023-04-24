@@ -89,17 +89,18 @@ class ScaledDotProduct(LinearLayer):
         return e_x / e_x.sum(axis=-1, keepdims=True) # keepdims to keep same shape and axis=-1 to sum over last axis
     
 class MultiHeadAttention(ScaledDotProduct):
-    def __init__(self, positional_embedding, len_input_text, d_model, output_dim, mask=None, *args, **kwargs) -> None:
+    def __init__(self, positional_embedding, len_input_text, d_model, output_dim, heads, mask=None, *args, **kwargs) -> None:
         super().__init__(positional_embedding, len_input_text, d_model, output_dim, mask, *args, **kwargs)
         self.len_input_text = len_input_text
         self.d_model = d_model
+        self.heads = heads
 
         # Create multi-head attention object with Q, K, V, and output weights
         self.scaled_dot_prod = ScaledDotProduct(positional_embedding=self.positional_embedding, len_input_text=self.len_input_text, d_model=self.d_model, output_dim=self.d_model)
     
     def forward(self):
         # Apply multi-head attention
-        filtered_value = [self.scaled_dot_prod.forward()]#, self.scaled_dot_prod.forward()] # * self.heads
+        filtered_value = [self.scaled_dot_prod.forward() for _ in range(self.heads)] # * self.heads 
 
         # Concatenate
         concat_value = np.concatenate(filtered_value, axis=0) # axis=0 to concatenate vertically and axis=1 to concatenate horizontally
@@ -117,10 +118,10 @@ class MultiHeadAttention(ScaledDotProduct):
 class AddAndNorm:
     def __init__(self, input_dim: int):
         self.input_dim = input_dim
-        self.epsilon = 1e-8
+        self.epsilon = 1e-8 # 1e-8 to avoid division by zero
         
 
-    def forward(self, x, pos_embeding, multi_head_output, residual):
+    def forward(self, pos_embeding, multi_head_output, residual):
         # assert self.normalized_shape == x.shape[-len(self.normalized_shape):]
         
         # Adds the positional embedding and the multi head attention output.
@@ -132,7 +133,7 @@ class AddAndNorm:
         var = np.var(x, axis=1, keepdims=True)
         
         # Normalize
-        x_norm = (x - mean[:, np.newaxis]) / np.sqrt([i**2 + self.epsilon for i in var]) # 1e-8 to avoid division by zero
+        x_norm = (x - mean) / np.sqrt(var + self.epsilon)
 
         # Scale
         output = x_norm * self.input_dim
