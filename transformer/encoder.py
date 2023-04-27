@@ -28,9 +28,9 @@ class Encoder(MultiHeadAttention):
         
         self.add_norm = AddAndNorm(input_dim=self.d_model)
         self.add_and_norm_output = self.add_norm.forward(pos_embeding=self.positional_embedding, multi_head_output=self.multi_head_attn, residual=self.positional_embedding)
-        result = self.add_and_norm_output
-        return result, result.shape
-        #self.feed_forward_output = FeedForward(input_dim=self.d_model, output_dim=self.d_model, activation='relu').forward(x=self.add_and_norm_output)
+        self.feed_forward_output = FeedForward(input_dim=self.d_model, output_dim=self.d_model, activation='relu').forward(x=self.add_and_norm_output)
+        
+        return self.feed_forward_output
 
 def test_logger(*args, **kwargs):
     for i in range(1, 10):

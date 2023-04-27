@@ -102,7 +102,6 @@ class MultiHeadAttention(ScaledDotProduct):
     def forward(self):
         # Apply multi-head attention
         filtered_value = np.array([self.scaled_dot_prod.forward() for _ in range(self.heads)]) # * self.heads 
-        print(filtered_value.shape)
 
         # Concatenate
         # axis=0 to concatenate vertically, axis=1 to concatenate horizontally, axis=-1 to concatenate over the last axis
@@ -115,8 +114,7 @@ class MultiHeadAttention(ScaledDotProduct):
         # and get the output of the multi-head attention layer Concat(head1, ..., headh)W^O,
         # where W^O is a weight matrix that projects the concatenated vector to the expected dimension of the model (d_model). (Attention is all you need, page 5).
         concat_value = concat_value.reshape(self.heads, self.len_input_text, self.d_model) # C = number of heads, L = length of input text, D = dimension of the model
-
-        print(f'concat_value: {concat_value.shape}')
+        #print(f'concat_value: {concat_value.shape}')
 
         # Apply linear layer
         output = self.scaled_dot_prod.Wo.forward(concat_value).T
