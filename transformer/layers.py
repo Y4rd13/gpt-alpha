@@ -3,12 +3,12 @@ https://nn.labml.ai/normalization/layer_norm/index.html
 '''
 import numpy as np
 class PositionalEmbedding:
-    def __init__(self, d_model: int, *args, **kwargs):
+    def __init__(self, d_model: int, len_input_text: int):
         self.d_model = d_model
+        self.len_input_text = len_input_text 
     
     def call(self, input_text: str):
         # Get initial embedding and positional encoding
-        
         initial_embedding = self.__get_rand_embedding(input_text)
         positional_encoding = self.__get_positional_encoding()
         positional_embedding = np.add(initial_embedding, positional_encoding)
@@ -35,10 +35,11 @@ class PositionalEmbedding:
 class LinearLayer:
     def __init__(self, 
                  input_dim: int, # input dimension of the layer (number of neurons in the previous layer)
-                 output_dim: int # output dimension of the layer (number of neurons in the current layer)
+                 output_dim: int, # output dimension of the layer (number of neurons in the current layer)
+                 input_size: int = None # input size of the layer (number of neurons in the current layer)
                  ):
         # initialize weight randomly and using a normal distribution
-        weight_size = (input_dim, output_dim)
+        weight_size = (input_dim or input_size, output_dim)
         weight_total_elements = np.prod(weight_size)
         self.weight = np.random.randn(weight_total_elements).reshape(weight_size)
         
@@ -48,7 +49,7 @@ class LinearLayer:
 
         return output
 class ScaledDotProduct(LinearLayer):
-    def  __init__(self, positional_embedding, len_input_text, d_model, output_dim, mask=None, *args, **kwargs) -> None:
+    def  __init__(self, positional_embedding, len_input_text, d_model, output_dim, mask=None):
         self.positional_embedding = positional_embedding
         self.input_dim = len_input_text
         self.output_dim = output_dim
@@ -61,7 +62,7 @@ class ScaledDotProduct(LinearLayer):
         self.Wq = LinearLayer(self.input_dim, self.output_dim)
         self.Wk = LinearLayer(self.input_dim, self.output_dim)
         self.Wv = LinearLayer(self.input_dim, self.output_dim)
-        self.Wo = LinearLayer(self.input_dim, self.output_dim)
+        self.Wo = LinearLayer(self.num_heads, self.output_dim, input_size=self.input_dim)
 
     def forward(self):
         query = self.Wq.forward(self.positional_embedding)
@@ -89,8 +90,8 @@ class ScaledDotProduct(LinearLayer):
         return e_x / e_x.sum(axis=-1, keepdims=True) # keepdims to keep same shape and axis=-1 to sum over last axis
     
 class MultiHeadAttention(ScaledDotProduct):
-    def __init__(self, positional_embedding, len_input_text, d_model, output_dim, heads, mask=None, *args, **kwargs) -> None:
-        super().__init__(positional_embedding, len_input_text, d_model, output_dim, mask, *args, **kwargs)
+    def __init__(self, positional_embedding, len_input_text, d_model, output_dim, heads, mask=None) -> None:
+        super().__init__(positional_embedding, len_input_text, d_model, output_dim, mask)
         self.len_input_text = len_input_text
         self.d_model = d_model
         self.heads = heads
@@ -101,6 +102,7 @@ class MultiHeadAttention(ScaledDotProduct):
     def forward(self):
         # Apply multi-head attention
         filtered_value = np.array([self.scaled_dot_prod.forward() for _ in range(self.heads)]) # * self.heads 
+        print(filtered_value.shape)
 
         # Concatenate
         # axis=0 to concatenate vertically, axis=1 to concatenate horizontally, axis=-1 to concatenate over the last axis
@@ -109,7 +111,7 @@ class MultiHeadAttention(ScaledDotProduct):
         #print(f'filtered_value: {filtered_value}')
 
         # Apply linear layer
-        output = self.scaled_dot_prod.Wo.forward(concat_value.T)
+        output = self.scaled_dot_prod.Wo.forward(concat_value).T
         
         return output
     
@@ -123,14 +125,16 @@ class AddAndNorm:
         # assert self.normalized_shape == x.shape[-len(self.normalized_shape):]
         
         # Adds the positional embedding and the multi head attention output.
-        #print(f'pos_embeding: {pos_embeding} . shape {pos_embeding.shape}')
-        #print(f'multi_head_output: {multi_head_output} . shape: {multi_head_output.shape}')
-        x = pos_embeding + multi_head_output # ValueError: operands could not be broadcast together with shapes (2,4) (2,2)
+        # ValueError: operands could not be broadcast together with shapes (2,2) (2,4)
+        x = pos_embeding + multi_head_output
+
         # Calculate mean and variance of input x
         mean = np.mean(x, axis=1, keepdims=True)
         var = np.var(x, axis=1, keepdims=True)
         
         # Normalize
+        #scaling_factor = np.ones_like(x_norm) * self.input_dim
+        #output = x_norm * scaling_factor
         x_norm = (x - mean) / np.sqrt(var + self.epsilon)
 
         # Scale
