@@ -96,6 +96,7 @@ class MultiHeadAttention(ScaledDotProduct):
         self.len_input_text = len_input_text
         self.d_model = d_model
         self.heads = heads
+        assert self.d_model % self.heads == 0, "Number of heads must be a multiple of the model dimension"
 
         # Create multi-head attention object with Q, K, V, and output weights
         self.scaled_dot_prod = ScaledDotProduct(positional_embedding=self.positional_embedding, len_input_text=self.len_input_text, d_model=self.d_model, output_dim=self.d_model)
@@ -106,9 +107,7 @@ class MultiHeadAttention(ScaledDotProduct):
 
         # Concatenate
         # axis=0 to concatenate vertically, axis=1 to concatenate horizontally, axis=-1 to concatenate over the last axis
-        concat_value = np.concatenate(filtered_value, axis=-1) 
-        #print(f'concat_value: {concat_value.shape}')
-        #print(f'filtered_value: {filtered_value}')
+        concat_value = np.concatenate(filtered_value, axis=-1)
 
         # Reshape
         # Reshape the concatenated value to the original shape of the input text, but with the dimension of the model as the last dimension to be able to apply the linear layer
@@ -137,7 +136,6 @@ class AddAndNorm:
         # assert self.normalized_shape == x.shape[-len(self.normalized_shape):]
         
         # Adds the positional embedding and the multi head attention output.
-        # ValueError: operands could not be broadcast together with shapes (2,2) (2,4)
         x = pos_embeding + multi_head_output
 
         # Calculate mean and variance of input x
