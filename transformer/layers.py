@@ -81,7 +81,7 @@ class ScaledDotProduct(LinearLayer):
         attn_filter = self.softmax(x=scores)
 
         # Apply attention to values
-        output = np.matmul(attn_filter, value.T) # value tiene que estar transpuesto?
+        output = np.matmul(attn_filter, value.T)
         
         return output
 
@@ -109,6 +109,14 @@ class MultiHeadAttention(ScaledDotProduct):
         concat_value = np.concatenate(filtered_value, axis=0) 
         #print(f'concat_value: {concat_value.shape}')
         #print(f'filtered_value: {filtered_value}')
+
+        # Reshape
+        # Reshape the concatenated value to the original shape of the input text, but with the dimension of the model as the last dimension to be able to apply the linear layer
+        # and get the output of the multi-head attention layer Concat(head1, ..., headh)W^O,
+        # where W^O is a weight matrix that projects the concatenated vector to the expected dimension of the model (d_model). (Attention is all you need, page 5).
+        concat_value = concat_value.reshape(self.heads, self.len_input_text, self.d_model) # C = number of heads, L = length of input text, D = dimension of the model
+
+        print(f'concat_value: {concat_value.shape}')
 
         # Apply linear layer
         output = self.scaled_dot_prod.Wo.forward(concat_value).T
