@@ -5,20 +5,24 @@ TODO:
 '''
 import sys
 from layers import *
-from utils import handle_error
+from utils import handle_error, plot_positional_embedding
 class Transformer:
     pass
 
 class Encoder(MultiHeadAttention):
-    def __init__(self, d_model: int, heads: int):
+    def __init__(self, d_model: int, heads: int, plot_posemb: bool = False):
         self.d_model = d_model
         self.heads = heads
         self.output_dim = d_model * heads
+        self.plot_posemb = plot_posemb
     
     def call(self, input_text: str):
         self.len_input_text = len(input_text.split())
 
         self.positional_embedding = PositionalEmbedding(d_model=self.d_model, len_input_text=self.len_input_text).call(input_text)
+        
+        if self.plot_posemb:
+            plot_positional_embedding(self.positional_embedding, self.len_input_text, self.d_model)
 
         self.multi_head_attn = MultiHeadAttention(positional_embedding=self.positional_embedding,
                                                   len_input_text=self.len_input_text,
@@ -61,14 +65,16 @@ def test_logger(*args, **kwargs):
                 f.write('-'*50 + '\n')
 
 if __name__ == '__main__':
-    heads = 2
-    d_model = 2
-    input_text = 'hello world'
-    testing = False
+    input_text = 'hello world esto significa en ingles hola mundo!'
+    heads, d_model = (2, 2**4)
+    # (2, 2**1) -> working
+    # (2, 2**2) -> not working
+    testing = True
+    plot_posemb = False
     
     if testing:
         test_logger()
     else:
-        encoder = Encoder(d_model, heads)
+        encoder = Encoder(d_model, heads, plot_posemb)
         encoder_result = encoder.call(input_text)
         print(f'Encoder result: {encoder_result}')

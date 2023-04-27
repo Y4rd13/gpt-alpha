@@ -1,17 +1,8 @@
-Iteration: 1 . d_model: 2
-Error: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 2 is different from 4)
---------------------------------------------------
-Iteration: 2 . d_model: 4
-Error: operands could not be broadcast together with shapes (2,4) (2,2) 
---------------------------------------------------
-Iteration: 3 . d_model: 8
-Error: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 8 is different from 4)
---------------------------------------------------
 Iteration: 4 . d_model: 16
-Error: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 16 is different from 4)
+Error: cannot reshape array of size 128 into shape (2,8,16)
 --------------------------------------------------
 Iteration: 5 . d_model: 32
-Error: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 32 is different from 4)
+Error: cannot reshape array of size 128 into shape (2,8,32)
 --------------------------------------------------
 Iteration: 6 . d_model: 64
 Error: integer division result too large for a float
