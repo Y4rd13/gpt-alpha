@@ -63,7 +63,7 @@ class ScaledDotProduct(LinearLayer):
         self.Wq = LinearLayer(self.input_dim, self.output_dim)
         self.Wk = LinearLayer(self.input_dim, self.output_dim)
         self.Wv = LinearLayer(self.input_dim, self.output_dim)
-        self.Wo = LinearLayer(self.num_heads, self.output_dim, input_size=self.input_dim)
+        self.Wo = LinearLayer(self.num_heads * self.output_dim, self.output_dim, input_size=self.input_dim)
 
     def forward(self):
         query = self.Wq.forward(self.positional_embedding)

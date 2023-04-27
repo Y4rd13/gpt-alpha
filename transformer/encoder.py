@@ -4,6 +4,7 @@ TODO:
     - Define the input_dim and output_dim for the AddAndNorm layer and FeedForward layer.
 '''
 import sys
+import argparse
 from layers import *
 from utils import handle_error, plot_positional_embedding
 class Transformer:
@@ -69,7 +70,7 @@ if __name__ == '__main__':
     heads, d_model = (2, 2**4)
     # (2, 2**1) -> working
     # (2, 2**2) -> not working
-    testing = True
+    testing = False
     plot_posemb = False
     
     if testing:
