@@ -37,7 +37,7 @@ class Encoder(MultiHeadAttention):
         
         return self.feed_forward_output
 
-def test_logger(*args, **kwargs):
+def test_logger(heads, *args, **kwargs):
     for i in range(1, 10):
         d_model = 2**i
 

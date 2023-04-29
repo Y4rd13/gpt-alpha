@@ -21,7 +21,7 @@ def main():
         input_text = f.read()
 
     if testing:
-        test_logger()
+        test_logger(heads)
     else:
         print(f'd_model: {d_model}, heads: {heads}')
         encoder = Encoder(d_model, heads, plot_posemb)
