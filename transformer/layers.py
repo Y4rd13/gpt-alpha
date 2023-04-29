@@ -104,6 +104,8 @@ class MultiHeadAttention(ScaledDotProduct):
     def forward(self):
         # Apply multi-head attention
         filtered_value = np.array([self.scaled_dot_prod.forward() for _ in range(self.heads)])
+        print('filtered_value elements: ', filtered_value.shape)
+        print([filtered_value[i].shape for i in range(self.heads)])
 
         # Concatenate
         # axis=0 to concatenate vertically, axis=1 to concatenate horizontally, axis=-1 to concatenate over the last axis
@@ -113,16 +115,20 @@ class MultiHeadAttention(ScaledDotProduct):
         # Reshape the concatenated value to the original shape of the input text, but with the dimension of the model as the last dimension to be able to apply the linear layer
         # and get the output of the multi-head attention layer Concat(head1, ..., headh)W^O,
         # where W^O is a weight matrix that projects the concatenated vector to the expected dimension of the model (d_model). (Attention is all you need, page 5).
-        print(f'concat_value: {concat_value.shape} . size: {concat_value.size}, filtered_value: {filtered_value.shape}')
+        print(f'concat_value: {concat_value.shape} . size: {concat_value.size}')
+        print(f'filtered_value: {filtered_value.shape} . size: {filtered_value.size}')
+        print(f'len_input_text: {self.len_input_text} . d_model: {self.d_model} . heads: {self.heads}')
+        print('-'*50)
 
         # Here, instead of concatenating the arrays vertically in filtered_value, 
         # they are concatenating horizontally with axis=-1. 
         # The concat_value is then reshaped to (batch_size, num_heads, len_input_text, d_model) using the reshape function, where batch_size is -1 to automatically adjust to the size of the input.
-        concat_value = concat_value.reshape(-1, self.heads, self.len_input_text, self.d_model) 
+        
+        #concat_value = concat_value.reshape(-1, self.heads, self.len_input_text, self.d_model) 
 
 
         # Apply linear layer
-        output = self.scaled_dot_prod.Wo.forward(concat_value)#.T
+        output = self.scaled_dot_prod.Wo.forward(concat_value).T
         
         return output
     
