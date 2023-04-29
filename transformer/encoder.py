@@ -36,6 +36,10 @@ class Encoder(MultiHeadAttention):
         return self.feed_forward_output
 
 def test_encoder(input_text, heads, *args, **kwargs):
+    # clean logs
+    open('transformer/logs/logs.log', 'w').close()
+    open('transformer/logs/error.log', 'w').close()
+
     for i in range(1, 10):
         d_model = 2**i
 
