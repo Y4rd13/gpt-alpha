@@ -35,13 +35,13 @@ class Encoder(MultiHeadAttention):
         
         return self.feed_forward_output
 
-def test_encoder(input_text, heads, *args, **kwargs):
+def test_encoder(input_text, heads, power, iter):
     # clean logs
     open('transformer/logs/logs.log', 'w').close()
     open('transformer/logs/error.log', 'w').close()
 
-    for i in range(1, 10):
-        d_model = 2**i
+    for i in range(1, iter):
+        d_model = power**i
 
         try:
             print(f'Iteration: {i}')

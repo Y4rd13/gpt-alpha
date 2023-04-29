@@ -7,6 +7,8 @@ def main():
     parser.add_argument('-H', '--heads', type=int, default=2, help='Number of attention heads')
     parser.add_argument('-D', '--d_model', type=int, default=4, help='Size of the model')
     parser.add_argument('-test', '--testing', default=False, action='store_true', help='Activate testing mode')
+    parser.add_argument('--power', type=int, default=2, help='Power of 2 for d_model in testing mode')
+    parser.add_argument('-i', '--iter', type=int, default=10, help='Number of iterations for testing mode')
     parser.add_argument('--plot_posemb', default=False, action='store_true', help='Plot the positional embedding')
 
     args = parser.parse_args()
@@ -21,7 +23,9 @@ def main():
         input_text = f.read()
 
     if testing:
-        test_encoder(input_text, heads)
+        power = args.power
+        iter = args.iter
+        test_encoder(input_text, heads, power, iter)
     else:
         print(f'd_model: {d_model}, heads: {heads}')
         encoder = Encoder(d_model, heads, plot_posemb)
