@@ -1,81 +1,30 @@
 Iteration: 1 . d_model: 2
-Error: name 'heads' is not defined
+Error: name 'input_text' is not defined
 --------------------------------------------------
 Iteration: 2 . d_model: 4
-Error: name 'heads' is not defined
+Error: name 'input_text' is not defined
 --------------------------------------------------
 Iteration: 3 . d_model: 8
-Error: name 'heads' is not defined
+Error: name 'input_text' is not defined
 --------------------------------------------------
 Iteration: 4 . d_model: 16
-Error: name 'heads' is not defined
+Error: name 'input_text' is not defined
 --------------------------------------------------
 Iteration: 5 . d_model: 32
-Error: name 'heads' is not defined
+Error: name 'input_text' is not defined
 --------------------------------------------------
 Iteration: 6 . d_model: 64
-Error: name 'heads' is not defined
+Error: name 'input_text' is not defined
 --------------------------------------------------
 Iteration: 7 . d_model: 128
-Error: name 'heads' is not defined
+Error: name 'input_text' is not defined
 --------------------------------------------------
 Iteration: 8 . d_model: 256
-Error: name 'heads' is not defined
+Error: name 'input_text' is not defined
 --------------------------------------------------
 Iteration: 9 . d_model: 512
-Error: name 'heads' is not defined
+Error: name 'input_text' is not defined
 --------------------------------------------------
-Iteration: 1 . d_model: 2
-Error: name 'heads' is not defined
---------------------------------------------------
-Iteration: 2 . d_model: 4
-Error: name 'heads' is not defined
---------------------------------------------------
-Iteration: 3 . d_model: 8
-Error: name 'heads' is not defined
---------------------------------------------------
-Iteration: 4 . d_model: 16
-Error: name 'heads' is not defined
---------------------------------------------------
-Iteration: 5 . d_model: 32
-Error: name 'heads' is not defined
---------------------------------------------------
-Iteration: 6 . d_model: 64
-Error: name 'heads' is not defined
---------------------------------------------------
-Iteration: 7 . d_model: 128
-Error: name 'heads' is not defined
---------------------------------------------------
-Iteration: 8 . d_model: 256
-Error: name 'heads' is not defined
---------------------------------------------------
-Iteration: 9 . d_model: 512
-Error: name 'heads' is not defined
---------------------------------------------------
-Iteration: 1 . d_model: 2
-Error: name 'heads' is not defined
---------------------------------------------------
-Iteration: 2 . d_model: 4
-Error: name 'heads' is not defined
---------------------------------------------------
-Iteration: 3 . d_model: 8
-Error: name 'heads' is not defined
---------------------------------------------------
-Iteration: 4 . d_model: 16
-Error: name 'heads' is not defined
---------------------------------------------------
-Iteration: 5 . d_model: 32
-Error: name 'heads' is not defined
---------------------------------------------------
-Iteration: 6 . d_model: 64
-Error: name 'heads' is not defined
---------------------------------------------------
-Iteration: 7 . d_model: 128
-Error: name 'heads' is not defined
---------------------------------------------------
-Iteration: 8 . d_model: 256
-Error: name 'heads' is not defined
---------------------------------------------------
-Iteration: 9 . d_model: 512
-Error: name 'heads' is not defined
+Iteration: 10 . d_model: 1024
+Error: name 'input_text' is not defined
 --------------------------------------------------
