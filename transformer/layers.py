@@ -113,7 +113,7 @@ class MultiHeadAttention(ScaledDotProduct):
         # Reshape the concatenated value to the original shape of the input text, but with the dimension of the model as the last dimension to be able to apply the linear layer
         # and get the output of the multi-head attention layer Concat(head1, ..., headh)W^O,
         # where W^O is a weight matrix that projects the concatenated vector to the expected dimension of the model (d_model). (Attention is all you need, page 5).
-        # print(f'concat_value: {concat_value.shape} . size: {concat_value.size}, filtered_value: {filtered_value.shape}')
+        print(f'concat_value: {concat_value.shape} . size: {concat_value.size}, filtered_value: {filtered_value.shape}')
 
         # Here, instead of concatenating the arrays vertically in filtered_value, 
         # they are concatenating horizontally with axis=-1. 
