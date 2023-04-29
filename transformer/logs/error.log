@@ -1,13 +1,4 @@
-Iteration: 4 . d_model: 16
-Error: cannot reshape array of size 128 into shape (2,8,16)
---------------------------------------------------
-Iteration: 5 . d_model: 32
-Error: cannot reshape array of size 128 into shape (2,8,32)
---------------------------------------------------
-Iteration: 6 . d_model: 64
-Error: integer division result too large for a float
-Maximum floating point number exceeded. Try to reduce the value of d_model.
-Current maximum floating point number: 1.7976931348623157e+308Iteration: 1 . d_model: 2
+Iteration: 1 . d_model: 2
 Error: name 'heads' is not defined
 --------------------------------------------------
 Iteration: 2 . d_model: 4
