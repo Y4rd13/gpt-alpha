@@ -1,5 +1,5 @@
 import argparse
-from encoder import Encoder, test_logger
+from encoder import Encoder, test_encoder
 
 def main():
     parser = argparse.ArgumentParser(description='Encoder for Transformer model')
@@ -21,7 +21,7 @@ def main():
         input_text = f.read()
 
     if testing:
-        test_logger(heads)
+        test_encoder(input_text, heads)
     else:
         print(f'd_model: {d_model}, heads: {heads}')
         encoder = Encoder(d_model, heads, plot_posemb)

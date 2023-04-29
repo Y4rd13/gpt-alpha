@@ -6,9 +6,7 @@ TODO:
 import sys
 import argparse
 from layers import *
-from utils import handle_error, plot_positional_embedding
-class Transformer:
-    pass
+from utils import plot_positional_embedding, handle_error
 
 class Encoder(MultiHeadAttention):
     def __init__(self, d_model: int, heads: int, plot_posemb: bool = False):
@@ -37,12 +35,8 @@ class Encoder(MultiHeadAttention):
         
         return self.feed_forward_output
 
-def test_logger(heads, *args, **kwargs):
-    # clean error.log and logs.log
-    open('transformer/logs/error.log', 'w').close()
-    open('transformer/logs/logs.log', 'w').close()
-
-    for i in range(1, 11):
+def test_encoder(input_text, heads, *args, **kwargs):
+    for i in range(1, 10):
         d_model = 2**i
 
         try:
@@ -68,18 +62,3 @@ def test_logger(heads, *args, **kwargs):
                     f.write(error_raise_message)
                     raise Exception(error_raise_message)
                 f.write('-'*50 + '\n')
-
-if __name__ == '__main__':
-    input_text = 'hello world esto significa en ingles hola mundo!'
-    heads, d_model = (2, 2**4)
-    # (2, 2**1) -> working
-    # (2, 2**2) -> not working
-    testing = False
-    plot_posemb = False
-    
-    if testing:
-        test_logger()
-    else:
-        encoder = Encoder(d_model, heads, plot_posemb)
-        encoder_result = encoder.call(input_text)
-        print(f'Encoder result: {encoder_result}')

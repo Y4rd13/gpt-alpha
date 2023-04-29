@@ -28,3 +28,49 @@ Error: name 'input_text' is not defined
 Iteration: 10 . d_model: 1024
 Error: name 'input_text' is not defined
 --------------------------------------------------
+Iteration: 1 . d_model: 2
+Error: 'int' object has no attribute 'split'
+--------------------------------------------------
+Iteration: 2 . d_model: 4
+Error: 'int' object has no attribute 'split'
+--------------------------------------------------
+Iteration: 3 . d_model: 8
+Error: 'int' object has no attribute 'split'
+--------------------------------------------------
+Iteration: 4 . d_model: 16
+Error: 'int' object has no attribute 'split'
+--------------------------------------------------
+Iteration: 5 . d_model: 32
+Error: 'int' object has no attribute 'split'
+--------------------------------------------------
+Iteration: 6 . d_model: 64
+Error: 'int' object has no attribute 'split'
+--------------------------------------------------
+Iteration: 7 . d_model: 128
+Error: 'int' object has no attribute 'split'
+--------------------------------------------------
+Iteration: 8 . d_model: 256
+Error: 'int' object has no attribute 'split'
+--------------------------------------------------
+Iteration: 9 . d_model: 512
+Error: 'int' object has no attribute 'split'
+--------------------------------------------------
+Iteration: 1 . d_model: 2
+Error: cannot reshape array of size 9522 into shape (2,69,2)
+--------------------------------------------------
+Iteration: 2 . d_model: 4
+Error: cannot reshape array of size 9522 into shape (2,69,4)
+--------------------------------------------------
+Iteration: 3 . d_model: 8
+Error: cannot reshape array of size 9522 into shape (2,69,8)
+--------------------------------------------------
+Iteration: 4 . d_model: 16
+Error: cannot reshape array of size 9522 into shape (2,69,16)
+--------------------------------------------------
+Iteration: 5 . d_model: 32
+Error: cannot reshape array of size 9522 into shape (2,69,32)
+--------------------------------------------------
+Iteration: 6 . d_model: 64
+Error: integer division result too large for a float
+Maximum floating point number exceeded. Try to reduce the value of d_model.
+Current maximum floating point number: 1.7976931348623157e+308
