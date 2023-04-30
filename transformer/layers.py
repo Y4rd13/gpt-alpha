@@ -231,7 +231,6 @@ class LayerNormalization(Layer): # Also called AddAndNorm or Residual
 
         # Scale and shift
         output = self.gamma * x_norm + self.beta
-        #output = x_norm * self.normalized_shape
 
         # Add residual connection
         output += residual #encoder.positional_embedding
