@@ -3,16 +3,13 @@ https://nn.labml.ai/normalization/layer_norm/index.html
 '''
 import numpy as np
 from activations import Activation
-from activations import Softmax
 from typing import List
-softmax = Softmax()
+
 class Layer:
-    def __init__(self, name: str = None, dtype=None, trainable=True,
-                 input_spec=None, **kwargs):
+    def __init__(self, name: str = None, dtype=None, trainable=True, *args, **kwargs):
         self.name = name
         self.dtype = dtype
         self.trainable = trainable
-        self.input_spec = input_spec
 
         self._added_weight = []
 
@@ -72,9 +69,6 @@ class PositionalEmbedding(Layer):
         self.input_sequence_length = input_sequence_length
         self.n = 10000  # Constant for the sinusoidal functions: max number of words in a sentence used in Attention is All You Need paper.
 
-    def build(self, input_shape):
-        super().build(input_shape)
-
     def call(self, inputs=None):
         # Get initial embedding and positional encoding
         initial_embedding = self.__get_rand_embedding()  # get random initial embedding
@@ -107,15 +101,12 @@ class Linear(Layer):
         weight_size = (input_dim or input_size, output_dim)
         self.weight = self.add_weight(name='weight', shape=weight_size)
 
-    def forward(self, x):
+    def __call__(self, inputs):
         # Calculate dot product between the input (x) and the weight (w)
-        output = np.matmul(x, self.weight.T)
+        output = np.matmul(inputs, self.weight.T)
         return output
 
-    def __call__(self, inputs):
-        return self.forward(inputs)
-
-class ScaledDotProduct(Linear):
+class Attention(Linear): # Also called ScaledDotProduct
     def  __init__(self, positional_encoding, input_sequence_length, heads, output_dim, mask=None, activation='softmax'):
         self.positional_encoding = positional_encoding
         self.input_dim = input_sequence_length
@@ -130,16 +121,16 @@ class ScaledDotProduct(Linear):
         self.Wq = Linear(self.input_dim, self.output_dim)
         self.Wk = Linear(self.input_dim, self.output_dim)
         self.Wv = Linear(self.input_dim, self.output_dim)
-        self.Wo = Linear(self.heads * self.output_dim, self.output_dim, input_size=self.input_dim)
+        self.Wo = Linear(self.heads * self.output_dim, self.output_dim)
 
         # Check if specified activation function is available
         self.activation_fn = Layer.get_activation(activation)
 
 
     def forward(self):
-        query = self.Wq.forward(self.positional_encoding)
-        key = self.Wk.forward(self.positional_encoding)
-        value = self.Wv.forward(self.positional_encoding)
+        query = self.Wq(self.positional_encoding)
+        key = self.Wk(self.positional_encoding)
+        value = self.Wv(self.positional_encoding)
 
         # Calculate attention scores
         output = np.matmul(query, key.T)
@@ -157,7 +148,7 @@ class ScaledDotProduct(Linear):
         
         return output
     
-class MultiHeadAttention(ScaledDotProduct):
+class MultiHeadAttention(Attention):
     def __init__(self,
                  positional_encoding,
                  input_sequence_length, 
@@ -175,7 +166,7 @@ class MultiHeadAttention(ScaledDotProduct):
         assert self.d_model % self.heads == 0, "Number of heads must be a multiple of the model dimension"
 
         # Create multi-head attention object with Q, K, V, and output weights
-        self.scaled_dot_prod = ScaledDotProduct(positional_encoding=self.positional_encoding,
+        self.attention = Attention(positional_encoding=self.positional_encoding,
                                                 input_sequence_length=self.input_sequence_length, 
                                                 heads=self.heads, 
                                                 output_dim=self.output_dim,
@@ -184,25 +175,31 @@ class MultiHeadAttention(ScaledDotProduct):
     
     def forward(self):
         # Apply multi-head attention
-        filtered_value = np.array([self.scaled_dot_prod.forward() for _ in range(self.heads)])
+        filtered_value = np.array([self.attention.forward() for _ in range(self.heads)])
 
         # Concatenate
         # axis=0 to concatenate vertically, axis=1 to concatenate horizontally, axis=-1 to concatenate over the last axis
         concat_value = np.concatenate(filtered_value, axis=-1)
 
         # Apply linear layer
-        output = self.scaled_dot_prod.Wo.forward(concat_value.reshape(self.batch_size, self.input_sequence_length, self.d_model)).T
+        output = self.attention.Wo(concat_value.reshape(self.batch_size, self.input_sequence_length, self.d_model)).T
         
         return output
     
-class AddAndNorm(Layer):
-    def __init__(self, input_dim: int):
+class LayerNormalization(Layer): # Also called AddAndNorm or Residual
+    def __init__(self, normalized_shape: int, epsilon: float = 1e-8):
         super().__init__()
-        self.input_dim = input_dim
-        self.epsilon = 1e-8 # 1e-8 to avoid division by zero
+        self.normalized_shape = normalized_shape
+        self.epsilon = epsilon # 1e-8 to avoid division by zero
+        self.normalized_shape = (normalized_shape,)
+        # Initialize gamma and beta weights for scaling and shifting the normalized value
+        # Gamma is usefull for scaling and beta for shifting
+        self.gamma = self.add_weight(name='gamma', shape=self.normalized_shape, initializer='ones')
+        self.beta = self.add_weight(name='beta', shape=self.normalized_shape, initializer='zeros')
 
-    def forward(self, positional_encoding, multi_head_output, residual):
-        # assert self.normalized_shape == x.shape[-len(self.normalized_shape):]
+    def __call__(self, positional_encoding, multi_head_output, residual):
+        # Check if the shape of the positional encoding is equal to the normalized shape
+        assert self.normalized_shape == positional_encoding.shape[-len(self.normalized_shape):]
         
         # Adds the positional embedding and the multi head attention output.
         x = positional_encoding + multi_head_output
@@ -212,12 +209,11 @@ class AddAndNorm(Layer):
         var = np.var(x, axis=1, keepdims=True)
         
         # Normalize
-        #scaling_factor = np.ones_like(x_norm) * self.input_dim
-        #output = x_norm * scaling_factor
         x_norm = (x - mean) / np.sqrt(var + self.epsilon)
 
-        # Scale
-        output = x_norm * self.input_dim
+        # Scale and shift
+        output = self.gamma * x_norm + self.beta
+        #output = x_norm * self.normalized_shape
 
         # Add residual connection
         output += residual #encoder.positional_embedding
@@ -225,19 +221,21 @@ class AddAndNorm(Layer):
         return output
     
 class FeedForward(Linear):
-    def __init__(self, input_dim: int, output_dim: int, activation: str):
+    def __init__(self, input_dim: int, output_dim: int, input_size: int = None, activation: str = 'relu'):
+        super().__init__(input_dim, output_dim, input_size)
+        self.linear_layer_1 = Linear(input_dim, output_dim, input_size)
+        self.linear_layer_2 = Linear(input_dim, output_dim, input_size)
         self.activation_fn = Layer.get_activation(activation)
-        self.linear_layer_1 = Linear(input_dim, output_dim)
-        self.linear_layer_2 = Linear(input_dim, output_dim)
 
-    def forward(self, x):
+    def __call__(self, x):
         # Apply linear layer
-        linear_layer_1 = self.linear_layer_1.forward(x)
+        linear_layer_1 = self.linear_layer_1(x)
 
         # Apply activation function
         activation_layer_1 = self.activation_fn(linear_layer_1)
 
         # Apply linear layer
-        linear_layer_2 = self.linear_layer_2.forward(activation_layer_1)
+        linear_layer_2 = self.linear_layer_2(activation_layer_1)
 
         return linear_layer_2
+

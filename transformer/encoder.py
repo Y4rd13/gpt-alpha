@@ -6,7 +6,7 @@ from preprocessing import Tokenizer
 from layers import (
     PositionalEmbedding,
     MultiHeadAttention,
-    AddAndNorm,
+    LayerNormalization,
     FeedForward,
 )
 
@@ -59,9 +59,10 @@ class Encoder(MultiHeadAttention):
                                                   batch_size=self.batch_size,
                                                   heads=self.heads).forward()
         
-        self.add_norm = AddAndNorm(input_dim=self.d_model)
-        self.add_and_norm_output = self.add_norm.forward(positional_encoding=self.positional_encoding, multi_head_output=self.multi_head_attn, residual=self.positional_encoding)
-        self.feed_forward_output = FeedForward(input_dim=self.d_model, output_dim=self.d_model, activation='relu').forward(x=self.add_and_norm_output)
+        self.layer_normalization = LayerNormalization(normalized_shape=self.d_model)
+        self.layer_normalization_output = self.layer_normalization(positional_encoding=self.positional_encoding, multi_head_output=self.multi_head_attn, residual=self.positional_encoding)
+        self.feed_forward = FeedForward(input_dim=self.d_model, output_dim=self.d_model, activation='relu')
+        self.feed_forward_output = self.feed_forward(x=self.layer_normalization_output)
         return self.feed_forward_output
 
 def test_encoder(input_text, heads, power, iter):
