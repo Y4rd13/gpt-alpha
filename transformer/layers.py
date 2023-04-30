@@ -3,20 +3,6 @@ https://nn.labml.ai/normalization/layer_norm/index.html
 '''
 import numpy as np
 
-class Tokenizer:
-    def __init__(self):
-        self.word2idx = {} # Dictionary to store the word to index mapping
-        self.index2word = {} # Dictionary to store the index to word mapping
-    
-    def tokenize(self, input_text: str):
-        self.__create_word_index_mapping(input_text) # create word to index and index to word mapping
-
-    def __create_word_index_mapping(self, input_text: str):
-        words = input_text.split()
-        for i, word in enumerate(words):
-            self.word2idx[word] = i
-            self.index2word[i] = word
-        self.word2idx['<pad>'] = len(self.word2idx) # add padding token to the dictionary
 class PositionalEmbedding:
     def __init__(self, d_model: int, input_sequence_length: int):
         self.d_model = d_model

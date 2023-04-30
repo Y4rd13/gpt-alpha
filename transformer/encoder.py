@@ -1,7 +1,19 @@
+
 import sys
 import numpy as np
-from layers import *
-from utils import plot_positional_embedding, handle_error
+
+from preprocessing import Tokenizer
+from layers import (
+    PositionalEmbedding,
+    MultiHeadAttention,
+    AddAndNorm,
+    FeedForward,
+)
+
+from utils import (
+    plot_positional_embedding, 
+    handle_error,
+    )
 
 class Encoder(MultiHeadAttention):
     def __init__(self, 
@@ -14,7 +26,7 @@ class Encoder(MultiHeadAttention):
         self.input_sequence = self.input_text.split()
         self.input_sequence_length = len(self.input_sequence)
         self.tokenizer = Tokenizer()
-        self.tokenizer.tokenize(self.input_text)
+        self.tokenizer.texts_to_sequences(self.input_text)
 
         self.d_model = d_model
         self.heads = heads
@@ -51,7 +63,6 @@ class Encoder(MultiHeadAttention):
         self.add_norm = AddAndNorm(input_dim=self.d_model)
         self.add_and_norm_output = self.add_norm.forward(positional_encoding=self.positional_encoding, multi_head_output=self.multi_head_attn, residual=self.positional_encoding)
         self.feed_forward_output = FeedForward(input_dim=self.d_model, output_dim=self.d_model, activation='relu').forward(x=self.add_and_norm_output)
-        
         return self.feed_forward_output
 
 def test_encoder(input_text, heads, power, iter):
