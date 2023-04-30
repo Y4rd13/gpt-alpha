@@ -4,8 +4,8 @@ class Activation:
     def __init__(self):
         self.name = self.__class__.__name__
 
-    def __call__(self, x):
-        return self.forward(x)
+    def __call__(self, x, *args, **kwargs):
+        return self.forward(x, *args, **kwargs)
     
     def forward(self, x):
         raise NotImplementedError
@@ -35,21 +35,19 @@ class Tanh(Activation):
         return 1 - np.square(self.forward(x))
 
 class Softmax(Activation):
-    def __init__(self, axis=-1, keepdims: bool = True):
+    def __init__(self):
         super().__init__()
         self.name = "Softmax"
-        self.axis = axis
-        self.keepdims = keepdims
 
-    def forward(self, x):
-        return self.softmax(x)
+    def forward(self, x, axis=-1, keepdims=True):
+        return self.softmax(x, axis=axis, keepdims=keepdims)
     
     def backward(self, x):
         return self.softmax(x) * (1 - self.softmax(x))
 
-    def softmax(self, x):
-        e_x = np.exp(x - np.max(x, axis=self.axis, keepdims=self.keepdims))
-        return e_x / e_x.sum(axis=self.axis, keepdims=self.keepdims) # keepdims to keep same shape and axis=-1 to sum over last axis
+    def softmax(self, x, axis=-1, keepdims=True):
+        e_x = np.exp(x - np.max(x, axis=axis, keepdims=keepdims))
+        return e_x / e_x.sum(axis=axis, keepdims=keepdims)
     
 class GELU(Activation):
     def forward(self, x):

@@ -2,9 +2,11 @@
 https://nn.labml.ai/normalization/layer_norm/index.html
 '''
 import numpy as np
-import activations
+from activations import ReLU, Softmax
 from typing import List
 
+relu = ReLU()
+softmax = Softmax()
 class Layer:
     def __init__(self, name: str = None, dtype=None, trainable=True,
                  input_spec=None, **kwargs):
@@ -137,7 +139,7 @@ class ScaledDotProduct(Linear):
         if self.mask is not None:
             scores += -1e9 * self.mask
 
-        attn_filter = activations.Softmax(axis=-1, keepdims=True).forward(scores)
+        attn_filter = softmax(scores, axis=-1, keepdims=True)
 
         # Apply attention to values
         output = np.matmul(attn_filter, value[:, :self.d_k])
@@ -218,7 +220,7 @@ class FeedForward(Linear):
         linear_layer_1 = self.linear_layer_1.forward(x)
 
         # Apply ReLu activation function 
-        linear_layer_1_act = activations.ReLU().forward(linear_layer_1)
+        linear_layer_1_act = relu(linear_layer_1)
 
         # Apply linear layer
         linear_layer_2 = self.linear_layer_2.forward(linear_layer_1_act)
