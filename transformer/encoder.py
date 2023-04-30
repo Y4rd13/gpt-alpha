@@ -1,6 +1,7 @@
 
 import sys
 import numpy as np
+import logging
 
 from preprocessing import Tokenizer
 from layers import (
@@ -14,6 +15,21 @@ from utils import (
     plot_positional_embedding, 
     handle_error,
     )
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('transformer/logs/logs.log', mode='w'),
+        logging.StreamHandler()
+    ]
+)
+
+error_logger = logging.getLogger('error')
+error_logger.setLevel(logging.ERROR)
+error_handler = logging.FileHandler('transformer/logs/error.log', mode='w')
+error_logger.addHandler(error_handler)
+
 
 class Encoder(MultiHeadAttention):
     def __init__(self, 
@@ -35,17 +51,30 @@ class Encoder(MultiHeadAttention):
 
         self.plot_posemb = plot_posemb
 
-    def call(self):
+    def __call__(self):
+        try:
+            logging.info(f'Encoder started: (batch_size: {self.batch_size}, d_model: {self.d_model}, heads: {self.heads}, input_sequence_length: {self.input_sequence_length}, output_dim: {self.output_dim})')
+            output = self.forward()
+            logging.info(f'Encoder finished with output shape: {output.shape}')
+            return output
+        except Exception as err:
+            handle_error(err)
+            error_logger.error(f'Error: {err} . d_model: {self.d_model}\n')
+
+            if err == 'integer division result too large for a float':
+                error_raise_message = f'Maximum floating point number exceeded. Try to reduce the value of d_model.\nCurrent maximum floating point number: {sys.float_info.max}\n'
+                error_logger.error(error_raise_message)
+                raise Exception(error_raise_message)
+            raise Exception(err)
+
+    def forward(self):
         # Convert input sequence to numpy array
         self.positional_embedding = PositionalEmbedding(d_model=self.d_model, input_sequence_length=self.input_sequence_length)
         input_sequence = np.array([self.tokenizer.word2idx[word] for word in self.input_sequence])
         input_sequence = input_sequence.reshape(self.batch_size, -1) # add batch dimension
 
         # Create mask for padding
-        mask = np.zeros((self.batch_size, 1, self.input_sequence_length), dtype=bool)
-        for i in range(self.input_sequence_length):
-            if input_sequence[0, i] == self.tokenizer.word2idx['<pad>']:
-                mask[0][0][i] = True
+        mask = self.create_padding_mask(input_sequence)
 
         # Get positional encoding
         self.positional_encoding = self.positional_embedding.call()
@@ -57,42 +86,22 @@ class Encoder(MultiHeadAttention):
                                                   input_sequence_length=self.input_sequence_length,
                                                   d_model=self.d_model,
                                                   batch_size=self.batch_size,
-                                                  heads=self.heads).forward()
+                                                  heads=self.heads)
         
         self.layer_normalization = LayerNormalization(normalized_shape=self.d_model)
-        self.layer_normalization_output = self.layer_normalization(positional_encoding=self.positional_encoding, multi_head_output=self.multi_head_attn, residual=self.positional_encoding)
-        self.feed_forward = FeedForward(input_dim=self.d_model, output_dim=self.d_model, activation='relu')
-        self.feed_forward_output = self.feed_forward(x=self.layer_normalization_output)
-        return self.feed_forward_output
+        multi_head_output = self.multi_head_attn()
+        layer_normalization_output = self.layer_normalization(positional_encoding=self.positional_encoding, multi_head_output=multi_head_output, residual=self.positional_encoding)
+        feed_forward_output = self.calculate_feed_forward_output(layer_normalization_output)
+        
+        return feed_forward_output
 
-def test_encoder(input_text, heads, power, iter):
-    # clean logs
-    open('transformer/logs/logs.log', 'w').close()
-    open('transformer/logs/error.log', 'w').close()
+    def create_padding_mask(self, input_sequence):
+        mask = np.zeros((self.batch_size, 1, self.input_sequence_length), dtype=bool)
+        for i in range(self.input_sequence_length):
+            if input_sequence[0, i] == self.tokenizer.word2idx['<pad>']:
+                mask[0][0][i] = True
+        return mask
 
-    for i in range(1, iter):
-        d_model = power**i
-
-        try:
-            print(f'Iteration: {i}')
-            encoder = Encoder(d_model, heads)
-            encoder_result = encoder.call(input_text)
-            print(f'Encoder result: {encoder_result}')
-
-            with open('transformer/logs/logs.log', 'a') as f:
-                f.write(f'Iteration: {i} . d_model: {d_model}\n')
-                f.write(f'Encoder result: {encoder_result}\n')
-                f.write('-' * 50 + '\n')
-
-        except Exception as err:
-            err = str(err)
-            handle_error(err)
-            with open('transformer/logs/error.log', 'a') as f:
-                f.write(f'Iteration: {i} . d_model: {d_model}\n') 
-                f.write(f'Error: {err}\n')
-
-                if err == 'integer division result too large for a float':
-                    error_raise_message = f'Maximum floating point number exceeded. Try to reduce the value of d_model.\nCurrent maximum floating point number: {sys.float_info.max}\n'
-                    f.write(error_raise_message)
-                    raise Exception(error_raise_message)
-                f.write('-'*50 + '\n')
+    def calculate_feed_forward_output(self, input_tensor):
+        feed_forward = FeedForward(input_dim=self.d_model, output_dim=self.d_model, activation='relu')
+        return feed_forward(x=input_tensor)

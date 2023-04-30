@@ -3,7 +3,7 @@ https://nn.labml.ai/normalization/layer_norm/index.html
 '''
 import numpy as np
 from activations import Activation
-from typing import List
+from typing import List, Optional
 
 class Layer:
     def __init__(self, name: str = None, dtype=None, trainable=True, *args, **kwargs):
@@ -16,8 +16,14 @@ class Layer:
     def __call__(self, inputs, *args, **kwargs):
         raise NotImplementedError
 
-    def add_weight(self, name, shape, dtype=None, initializer=None, trainable=True,
-                   getter=None, **kwargs):
+    def add_weight(self, 
+                   name: str, 
+                   shape: tuple, 
+                   dtype: Optional[str] = None, 
+                   initializer: Optional[str] = None, 
+                   trainable: bool = True,
+                   getter: Optional[str] = None, 
+                   *args, **kwargs) -> np.ndarray:
         # A lightweight alternative to tf.Variable.
         # It simply adds a weight variable to the layer.
         if trainable:
@@ -29,7 +35,7 @@ class Layer:
     @property
     def weights(self) -> List[np.ndarray]:
         # Returns the weights of the layer.
-        return [self.trainable_weights, self.non_trainable_weights]
+        return self.trainable_weights + self.non_trainable_weights
 
     @property
     def trainable_weights(self) -> List[np.ndarray]:
@@ -49,17 +55,14 @@ class Layer:
         else:
             raise ValueError(f"Activation function '{activation}' not found")
 
-    def get_weights(self) -> List[np.ndarray]:
+    def get_all_weights(self) -> List[np.ndarray]:
         # Returns the current weights of the layer.
         return self.weights
 
-    def set_weights(self, weights: List[np.ndarray]) -> None:
+    def set_all_weights(self, weights: List[np.ndarray]) -> None:
         # Sets the weights of the layer.
-        assert len(weights) == 2, "Expected two arrays of weights, got {}".format(len(weights))
-        trainable_weights, non_trainable_weights = weights
-        assert len(trainable_weights) == len(self.trainable_weights), \
-            "Expected {} trainable weights, got {}".format(len(self.trainable_weights), len(trainable_weights))
-        for i, weight in enumerate(trainable_weights):
+        assert len(weights) == len(self.weights), "Expected {} arrays of weights, got {}".format(len(self.weights), len(weights))
+        for i, weight in enumerate(weights):
             setattr(self, self._added_weight[i], weight)
 
 class PositionalEmbedding(Layer):
@@ -69,7 +72,7 @@ class PositionalEmbedding(Layer):
         self.input_sequence_length = input_sequence_length
         self.n = 10000  # Constant for the sinusoidal functions: max number of words in a sentence used in Attention is All You Need paper.
 
-    def call(self, inputs=None):
+    def call(self, inputs: Optional[np.ndarray] = None) -> np.ndarray:
         # Get initial embedding and positional encoding
         initial_embedding = self.__get_rand_embedding()  # get random initial embedding
         positional_encoding = self.__get_positional_encoding()  # get positional encoding
@@ -94,7 +97,7 @@ class PositionalEmbedding(Layer):
         return initial_embedding
 
 class Linear(Layer):
-    def __init__(self, input_dim: int, output_dim: int, input_size: int = None):
+    def __init__(self, input_dim: int, output_dim: int, input_size: Optional[int] = None):
         super().__init__()
 
         # initialize weight randomly and using a normal distribution
@@ -107,7 +110,13 @@ class Linear(Layer):
         return output
 
 class Attention(Linear): # Also called ScaledDotProduct
-    def  __init__(self, positional_encoding, input_sequence_length, heads, output_dim, mask=None, activation='softmax'):
+    def  __init__(self, 
+                  positional_encoding: np.ndarray,
+                  input_sequence_length: int, 
+                  heads: int, 
+                  output_dim: int, 
+                  mask: Optional[np.ndarray] = None, 
+                  activation: str = 'softmax'):
         self.positional_encoding = positional_encoding
         self.input_dim = input_sequence_length
         self.output_dim = output_dim
@@ -126,8 +135,7 @@ class Attention(Linear): # Also called ScaledDotProduct
         # Check if specified activation function is available
         self.activation_fn = Layer.get_activation(activation)
 
-
-    def forward(self):
+    def __call__(self) -> np.ndarray:
         query = self.Wq(self.positional_encoding)
         key = self.Wk(self.positional_encoding)
         value = self.Wv(self.positional_encoding)
@@ -150,12 +158,12 @@ class Attention(Linear): # Also called ScaledDotProduct
     
 class MultiHeadAttention(Attention):
     def __init__(self,
-                 positional_encoding,
-                 input_sequence_length, 
-                 d_model, 
-                 heads,
-                 batch_size, 
-                 mask=None) -> None:
+                 positional_encoding: np.ndarray,
+                 input_sequence_length: int, 
+                 d_model: int, 
+                 heads: int,
+                 batch_size: int, 
+                 mask: Optional[np.ndarray] = None) -> None:
         super().__init__(positional_encoding, input_sequence_length, d_model, d_model // heads, mask)
 
         self.input_sequence_length = input_sequence_length
@@ -163,6 +171,7 @@ class MultiHeadAttention(Attention):
         self.output_dim = d_model
         self.heads = heads
         self.batch_size = batch_size
+        self.mask = mask
         assert self.d_model % self.heads == 0, "Number of heads must be a multiple of the model dimension"
 
         # Create multi-head attention object with Q, K, V, and output weights
@@ -170,12 +179,12 @@ class MultiHeadAttention(Attention):
                                                 input_sequence_length=self.input_sequence_length, 
                                                 heads=self.heads, 
                                                 output_dim=self.output_dim,
-                                                mask=None,
+                                                mask=self.mask,
                                                 activation='softmax')
     
-    def forward(self):
+    def __call__(self) -> np.ndarray:
         # Apply multi-head attention
-        filtered_value = np.array([self.attention.forward() for _ in range(self.heads)])
+        filtered_value = np.array([self.attention() for _ in range(self.heads)])
 
         # Concatenate
         # axis=0 to concatenate vertically, axis=1 to concatenate horizontally, axis=-1 to concatenate over the last axis
@@ -189,7 +198,6 @@ class MultiHeadAttention(Attention):
 class LayerNormalization(Layer): # Also called AddAndNorm or Residual
     def __init__(self, normalized_shape: int, epsilon: float = 1e-8):
         super().__init__()
-        self.normalized_shape = normalized_shape
         self.epsilon = epsilon # 1e-8 to avoid division by zero
         self.normalized_shape = (normalized_shape,)
         # Initialize gamma and beta weights for scaling and shifting the normalized value
@@ -197,7 +205,7 @@ class LayerNormalization(Layer): # Also called AddAndNorm or Residual
         self.gamma = self.add_weight(name='gamma', shape=self.normalized_shape, initializer='ones')
         self.beta = self.add_weight(name='beta', shape=self.normalized_shape, initializer='zeros')
 
-    def __call__(self, positional_encoding, multi_head_output, residual):
+    def __call__(self, positional_encoding: np.ndarray, multi_head_output: np.ndarray, residual: np.ndarray) -> np.ndarray:
         # Check if the shape of the positional encoding is equal to the normalized shape
         assert self.normalized_shape == positional_encoding.shape[-len(self.normalized_shape):]
         
@@ -221,13 +229,13 @@ class LayerNormalization(Layer): # Also called AddAndNorm or Residual
         return output
     
 class FeedForward(Linear):
-    def __init__(self, input_dim: int, output_dim: int, input_size: int = None, activation: str = 'relu'):
-        super().__init__(input_dim, output_dim, input_size)
-        self.linear_layer_1 = Linear(input_dim, output_dim, input_size)
-        self.linear_layer_2 = Linear(input_dim, output_dim, input_size)
+    def __init__(self, input_dim: int, output_dim: int, activation: str = 'relu'):
+        super().__init__(input_dim, output_dim)
+        self.linear_layer_1 = Linear(input_dim, output_dim)
+        self.linear_layer_2 = Linear(output_dim, output_dim)
         self.activation_fn = Layer.get_activation(activation)
 
-    def __call__(self, x):
+    def __call__(self, x: np.ndarray) -> np.ndarray:
         # Apply linear layer
         linear_layer_1 = self.linear_layer_1(x)
 
@@ -238,4 +246,3 @@ class FeedForward(Linear):
         linear_layer_2 = self.linear_layer_2(activation_layer_1)
 
         return linear_layer_2
-
