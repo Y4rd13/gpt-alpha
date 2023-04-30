@@ -29,7 +29,7 @@ def main():
     else:
         print(f'd_model: {d_model}, heads: {heads}')
         encoder = Encoder(input_text, d_model, heads, plot_posemb)
-        encoder_result = encoder.call()
+        encoder_result = encoder()
         print(f'Encoder result: {encoder_result}')
 
 if __name__ == '__main__':

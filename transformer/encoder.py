@@ -35,7 +35,7 @@ class Encoder(MultiHeadAttention):
 
         self.plot_posemb = plot_posemb
 
-    def call(self):
+    def __call__(self):
         # Convert input sequence to numpy array
         self.positional_embedding = PositionalEmbedding(d_model=self.d_model, input_sequence_length=self.input_sequence_length)
         input_sequence = np.array([self.tokenizer.word2idx[word] for word in self.input_sequence])
@@ -57,10 +57,10 @@ class Encoder(MultiHeadAttention):
                                                   input_sequence_length=self.input_sequence_length,
                                                   d_model=self.d_model,
                                                   batch_size=self.batch_size,
-                                                  heads=self.heads).forward()
+                                                  heads=self.heads)
         
         self.layer_normalization = LayerNormalization(normalized_shape=self.d_model)
-        self.layer_normalization_output = self.layer_normalization(positional_encoding=self.positional_encoding, multi_head_output=self.multi_head_attn, residual=self.positional_encoding)
+        self.layer_normalization_output = self.layer_normalization(positional_encoding=self.positional_encoding, multi_head_output=self.multi_head_attn(), residual=self.positional_encoding)
         self.feed_forward = FeedForward(input_dim=self.d_model, output_dim=self.d_model, activation='relu')
         self.feed_forward_output = self.feed_forward(x=self.layer_normalization_output)
         return self.feed_forward_output
