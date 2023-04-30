@@ -3,7 +3,7 @@ https://nn.labml.ai/normalization/layer_norm/index.html
 '''
 import numpy as np
 from activations import Activation
-from typing import List, Optional, Union
+from typing import List, Optional
 
 class Layer:
     def __init__(self, name: str = None, dtype=None, trainable=True, *args, **kwargs):
@@ -16,8 +16,14 @@ class Layer:
     def __call__(self, inputs, *args, **kwargs):
         raise NotImplementedError
 
-    def add_weight(self, name: str, shape: tuple, dtype: Optional[str] = None, initializer: Optional[str] = None, trainable: bool = True,
-                   getter: Optional[str] = None, **kwargs) -> np.ndarray:
+    def add_weight(self, 
+                   name: str, 
+                   shape: tuple, 
+                   dtype: Optional[str] = None, 
+                   initializer: Optional[str] = None, 
+                   trainable: bool = True,
+                   getter: Optional[str] = None, 
+                   *args, **kwargs) -> np.ndarray:
         # A lightweight alternative to tf.Variable.
         # It simply adds a weight variable to the layer.
         if trainable:

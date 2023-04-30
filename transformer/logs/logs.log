@@ -1,2 +1,0 @@
-2023-04-30 05:09:37,385 - INFO - Encoder started: (batch_size: 1, d_model: 32, heads: 2, input_sequence_length: 69, output_dim: 64)
-2023-04-30 05:09:37,392 - INFO - Encoder finished with output shape: (64, 69, 32)
