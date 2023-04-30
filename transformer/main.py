@@ -28,8 +28,8 @@ def main():
         test_encoder(input_text, heads, power, iter)
     else:
         print(f'd_model: {d_model}, heads: {heads}')
-        encoder = Encoder(d_model, heads, plot_posemb)
-        encoder_result = encoder.call(input_text)
+        encoder = Encoder(input_text, d_model, heads, plot_posemb)
+        encoder_result = encoder.call()
         print(f'Encoder result: {encoder_result}')
 
 if __name__ == '__main__':

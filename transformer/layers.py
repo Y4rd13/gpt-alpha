@@ -2,6 +2,20 @@
 https://nn.labml.ai/normalization/layer_norm/index.html
 '''
 import numpy as np
+
+class Tokenizer:
+    def __init__(self):
+        self.word2idx = {} # Dictionary to store the word to index mapping
+        self.index2word = {} # Dictionary to store the index to word mapping
+    
+    def call(self, input_text: str):
+        self.__create_word_index_mapping(input_text) # create word to index and index to word mapping
+
+    def __create_word_index_mapping(self, input_text: str):
+        words = input_text.split()
+        for i, word in enumerate(words):
+            self.word2idx[word] = i
+            self.index2word[i] = word
 class PositionalEmbedding:
     def __init__(self, d_model: int, len_input_text: int):
         self.d_model = d_model
@@ -10,9 +24,9 @@ class PositionalEmbedding:
     
     def call(self, input_text: str):
         # Get initial embedding and positional encoding
-        initial_embedding = self.__get_rand_embedding(input_text)
-        positional_encoding = self.__get_positional_encoding()
-        positional_embedding = np.add(initial_embedding, positional_encoding)
+        initial_embedding = self.__get_rand_embedding(input_text) # get random initial embedding
+        positional_encoding = self.__get_positional_encoding() # get positional encoding
+        positional_embedding = np.add(initial_embedding, positional_encoding) # add positional encoding to initial embedding
         return positional_embedding
 
     def __get_positional_encoding(self):
@@ -50,8 +64,8 @@ class LinearLayer:
 
         return output
 class ScaledDotProduct(LinearLayer):
-    def  __init__(self, positional_embedding, len_input_text, d_model, output_dim, mask=None):
-        self.positional_embedding = positional_embedding
+    def  __init__(self, positional_encoding, len_input_text, d_model, output_dim, mask=None):
+        self.positional_encoding = positional_encoding
         self.input_dim = len_input_text
         self.output_dim = output_dim
         self.num_heads = d_model
@@ -66,9 +80,9 @@ class ScaledDotProduct(LinearLayer):
         self.Wo = LinearLayer(self.num_heads * self.output_dim, self.output_dim, input_size=self.input_dim)
 
     def forward(self):
-        query = self.Wq.forward(self.positional_embedding)
-        key = self.Wk.forward(self.positional_embedding)
-        value = self.Wv.forward(self.positional_embedding)
+        query = self.Wq.forward(self.positional_encoding)
+        key = self.Wk.forward(self.positional_encoding)
+        value = self.Wv.forward(self.positional_encoding)
 
         # Calculate attention scores
         output = np.matmul(query, key.T)
@@ -76,7 +90,7 @@ class ScaledDotProduct(LinearLayer):
         # Normalization of the output scores
         scores = output / np.sqrt(self.output_dim) # self.output_dim/self.num_heads? 
 
-        if self.mask is not None: # que chucha?
+        if self.mask is not None:
             scores += -1e9 * self.mask
 
         attn_filter = self.softmax(x=scores)
@@ -91,15 +105,15 @@ class ScaledDotProduct(LinearLayer):
         return e_x / e_x.sum(axis=-1, keepdims=True) # keepdims to keep same shape and axis=-1 to sum over last axis
     
 class MultiHeadAttention(ScaledDotProduct):
-    def __init__(self, positional_embedding, len_input_text, d_model, output_dim, heads, mask=None) -> None:
-        super().__init__(positional_embedding, len_input_text, d_model, output_dim, mask)
+    def __init__(self, positional_encoding, len_input_text, d_model, output_dim, heads, mask=None) -> None:
+        super().__init__(positional_encoding, len_input_text, d_model, output_dim, mask)
         self.len_input_text = len_input_text
         self.d_model = d_model
         self.heads = heads
         assert self.d_model % self.heads == 0, "Number of heads must be a multiple of the model dimension"
 
         # Create multi-head attention object with Q, K, V, and output weights
-        self.scaled_dot_prod = ScaledDotProduct(positional_embedding=self.positional_embedding, len_input_text=self.len_input_text, d_model=self.d_model, output_dim=self.d_model)
+        self.scaled_dot_prod = ScaledDotProduct(positional_encoding=self.positional_encoding, len_input_text=self.len_input_text, d_model=self.d_model, output_dim=self.d_model)
     
     def forward(self):
         # Apply multi-head attention
@@ -138,11 +152,11 @@ class AddAndNorm:
         self.epsilon = 1e-8 # 1e-8 to avoid division by zero
         
 
-    def forward(self, pos_embeding, multi_head_output, residual):
+    def forward(self, positional_encoding, multi_head_output, residual):
         # assert self.normalized_shape == x.shape[-len(self.normalized_shape):]
         
         # Adds the positional embedding and the multi head attention output.
-        x = pos_embeding + multi_head_output
+        x = positional_encoding + multi_head_output
 
         # Calculate mean and variance of input x
         mean = np.mean(x, axis=1, keepdims=True)
