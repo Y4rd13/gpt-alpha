@@ -2,24 +2,39 @@
 https://nn.labml.ai/normalization/layer_norm/index.html
 '''
 import numpy as np
+
+class Tokenizer:
+    def __init__(self):
+        self.word2idx = {} # Dictionary to store the word to index mapping
+        self.index2word = {} # Dictionary to store the index to word mapping
+    
+    def tokenize(self, input_text: str):
+        self.__create_word_index_mapping(input_text) # create word to index and index to word mapping
+
+    def __create_word_index_mapping(self, input_text: str):
+        words = input_text.split()
+        for i, word in enumerate(words):
+            self.word2idx[word] = i
+            self.index2word[i] = word
+        self.word2idx['<pad>'] = len(self.word2idx) # add padding token to the dictionary
 class PositionalEmbedding:
-    def __init__(self, d_model: int, len_input_text: int):
+    def __init__(self, d_model: int, input_sequence_length: int):
         self.d_model = d_model
-        self.len_input_text = len_input_text
+        self.input_sequence_length = input_sequence_length
         self.n = 10000 # Constant for the sinusoidal functions: max number of words in a sentence used in Attention is All You Need paper.
     
-    def call(self, input_text: str):
+    def call(self):
         # Get initial embedding and positional encoding
-        initial_embedding = self.__get_rand_embedding(input_text)
-        positional_encoding = self.__get_positional_encoding()
-        positional_embedding = np.add(initial_embedding, positional_encoding)
+        initial_embedding = self.__get_rand_embedding() # get random initial embedding
+        positional_encoding = self.__get_positional_encoding() # get positional encoding
+        positional_embedding = np.add(initial_embedding, positional_encoding) # add positional encoding to initial embedding
         return positional_embedding
 
     def __get_positional_encoding(self):
         embedding_dim = self.d_model
-        pos_enc = np.zeros((self.len_input_text, self.d_model))
+        pos_enc = np.zeros((self.input_sequence_length, self.d_model))
 
-        for pos in range(self.len_input_text):
+        for pos in range(self.input_sequence_length):
             for i in range(embedding_dim):
                 if not i % 2:
                     pos_enc[pos, i] = np.sin(pos / ((self.n ** (2 * i)) / self.d_model))
@@ -27,10 +42,9 @@ class PositionalEmbedding:
                     pos_enc[pos, i] = np.cos(pos / ((self.n ** (2 * i)) / self.d_model))
         return pos_enc
 
-    def __get_rand_embedding(self, input_text: str):
+    def __get_rand_embedding(self):
         # random initial weights
-        self.len_input_text = len(input_text.split())
-        initial_embedding = np.random.randn(self.len_input_text, self.d_model)
+        initial_embedding = np.random.randn(self.input_sequence_length, self.d_model)
         return initial_embedding
 
 class LinearLayer:
@@ -50,12 +64,13 @@ class LinearLayer:
 
         return output
 class ScaledDotProduct(LinearLayer):
-    def  __init__(self, positional_embedding, len_input_text, d_model, output_dim, mask=None):
-        self.positional_embedding = positional_embedding
-        self.input_dim = len_input_text
+    def  __init__(self, positional_encoding, input_sequence_length, heads, output_dim, mask=None):
+        self.positional_encoding = positional_encoding
+        self.input_dim = input_sequence_length
         self.output_dim = output_dim
-        self.num_heads = d_model
+        self.heads = heads
         self.mask = mask
+        self.d_k = self.output_dim // self.heads
 
         super().__init__(self.input_dim, self.output_dim)
 
@@ -63,26 +78,26 @@ class ScaledDotProduct(LinearLayer):
         self.Wq = LinearLayer(self.input_dim, self.output_dim)
         self.Wk = LinearLayer(self.input_dim, self.output_dim)
         self.Wv = LinearLayer(self.input_dim, self.output_dim)
-        self.Wo = LinearLayer(self.num_heads * self.output_dim, self.output_dim, input_size=self.input_dim)
+        self.Wo = LinearLayer(self.heads * self.output_dim, self.output_dim, input_size=self.input_dim)
 
     def forward(self):
-        query = self.Wq.forward(self.positional_embedding)
-        key = self.Wk.forward(self.positional_embedding)
-        value = self.Wv.forward(self.positional_embedding)
+        query = self.Wq.forward(self.positional_encoding)
+        key = self.Wk.forward(self.positional_encoding)
+        value = self.Wv.forward(self.positional_encoding)
 
         # Calculate attention scores
         output = np.matmul(query, key.T)
         
         # Normalization of the output scores
-        scores = output / np.sqrt(self.output_dim) # self.output_dim/self.num_heads? 
+        scores = output / np.sqrt(self.output_dim // self.heads) # self.output_dim/self.num_heads? 
 
-        if self.mask is not None: # que chucha?
+        if self.mask is not None:
             scores += -1e9 * self.mask
 
         attn_filter = self.softmax(x=scores)
 
         # Apply attention to values
-        output = np.matmul(attn_filter, value) # value.T? 
+        output = np.matmul(attn_filter, value[:, :self.d_k])
         
         return output
 
@@ -91,44 +106,38 @@ class ScaledDotProduct(LinearLayer):
         return e_x / e_x.sum(axis=-1, keepdims=True) # keepdims to keep same shape and axis=-1 to sum over last axis
     
 class MultiHeadAttention(ScaledDotProduct):
-    def __init__(self, positional_embedding, len_input_text, d_model, output_dim, heads, mask=None) -> None:
-        super().__init__(positional_embedding, len_input_text, d_model, output_dim, mask)
-        self.len_input_text = len_input_text
+    def __init__(self,
+                 positional_encoding,
+                 input_sequence_length, 
+                 d_model, 
+                 heads,
+                 batch_size, 
+                 mask=None) -> None:
+        super().__init__(positional_encoding, input_sequence_length, d_model, d_model // heads, mask)
+
+        self.input_sequence_length = input_sequence_length
         self.d_model = d_model
+        self.output_dim = d_model
         self.heads = heads
+        self.batch_size = batch_size
         assert self.d_model % self.heads == 0, "Number of heads must be a multiple of the model dimension"
 
         # Create multi-head attention object with Q, K, V, and output weights
-        self.scaled_dot_prod = ScaledDotProduct(positional_embedding=self.positional_embedding, len_input_text=self.len_input_text, d_model=self.d_model, output_dim=self.d_model)
+        self.scaled_dot_prod = ScaledDotProduct(positional_encoding=self.positional_encoding,
+                                                input_sequence_length=self.input_sequence_length, 
+                                                heads=self.heads, 
+                                                output_dim=self.output_dim)
     
     def forward(self):
         # Apply multi-head attention
         filtered_value = np.array([self.scaled_dot_prod.forward() for _ in range(self.heads)])
-        print('filtered_value elements: ', filtered_value.shape)
-        print([filtered_value[i].shape for i in range(self.heads)])
 
         # Concatenate
         # axis=0 to concatenate vertically, axis=1 to concatenate horizontally, axis=-1 to concatenate over the last axis
         concat_value = np.concatenate(filtered_value, axis=-1)
 
-        # Reshape
-        # Reshape the concatenated value to the original shape of the input text, but with the dimension of the model as the last dimension to be able to apply the linear layer
-        # and get the output of the multi-head attention layer Concat(head1, ..., headh)W^O,
-        # where W^O is a weight matrix that projects the concatenated vector to the expected dimension of the model (d_model). (Attention is all you need, page 5).
-        print(f'concat_value: {concat_value.shape} . size: {concat_value.size}')
-        print(f'filtered_value: {filtered_value.shape} . size: {filtered_value.size}')
-        print(f'len_input_text: {self.len_input_text} . d_model: {self.d_model} . heads: {self.heads}')
-        print('-'*50)
-
-        # Here, instead of concatenating the arrays vertically in filtered_value, 
-        # they are concatenating horizontally with axis=-1. 
-        # The concat_value is then reshaped to (batch_size, num_heads, len_input_text, d_model) using the reshape function, where batch_size is -1 to automatically adjust to the size of the input.
-        
-        #concat_value = concat_value.reshape(-1, self.heads, self.len_input_text, self.d_model) 
-
-
         # Apply linear layer
-        output = self.scaled_dot_prod.Wo.forward(concat_value).T
+        output = self.scaled_dot_prod.Wo.forward(concat_value.reshape(self.batch_size, self.input_sequence_length, self.d_model)).T
         
         return output
     
@@ -138,11 +147,11 @@ class AddAndNorm:
         self.epsilon = 1e-8 # 1e-8 to avoid division by zero
         
 
-    def forward(self, pos_embeding, multi_head_output, residual):
+    def forward(self, positional_encoding, multi_head_output, residual):
         # assert self.normalized_shape == x.shape[-len(self.normalized_shape):]
         
         # Adds the positional embedding and the multi head attention output.
-        x = pos_embeding + multi_head_output
+        x = positional_encoding + multi_head_output
 
         # Calculate mean and variance of input x
         mean = np.mean(x, axis=1, keepdims=True)

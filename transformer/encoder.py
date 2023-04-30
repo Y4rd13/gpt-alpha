@@ -1,36 +1,55 @@
-
-'''
-TODO:
-    - Define the input_dim and output_dim for the AddAndNorm layer and FeedForward layer.
-'''
 import sys
-import argparse
+import numpy as np
 from layers import *
 from utils import plot_positional_embedding, handle_error
 
 class Encoder(MultiHeadAttention):
-    def __init__(self, d_model: int, heads: int, plot_posemb: bool = False):
+    def __init__(self, 
+                 input_text: str, 
+                 d_model: int, 
+                 heads: int,
+                 plot_posemb: bool = False
+                 ):
+        self.input_text = input_text.lower()
+        self.input_sequence = self.input_text.split()
+        self.input_sequence_length = len(self.input_sequence)
+        self.tokenizer = Tokenizer()
+        self.tokenizer.tokenize(self.input_text)
+
         self.d_model = d_model
         self.heads = heads
         self.output_dim = d_model * heads
+        self.batch_size = 1
+
         self.plot_posemb = plot_posemb
     
-    def call(self, input_text: str):
-        self.len_input_text = len(input_text.split())
 
-        self.positional_embedding = PositionalEmbedding(d_model=self.d_model, len_input_text=self.len_input_text).call(input_text)
+    def call(self):
+        # Convert input sequence to numpy array
+        self.positional_embedding = PositionalEmbedding(d_model=self.d_model, input_sequence_length=self.input_sequence_length)
+        input_sequence = np.array([self.tokenizer.word2idx[word] for word in self.input_sequence])
+        input_sequence = input_sequence.reshape(self.batch_size, -1) # add batch dimension
+
+        # Create mask for padding
+        mask = np.zeros((self.batch_size, 1, self.input_sequence_length), dtype=bool)
+        for i in range(self.input_sequence_length):
+            if input_sequence[0, i] == self.tokenizer.word2idx['<pad>']:
+                mask[0][0][i] = True
+
+        # Get positional encoding
+        self.positional_encoding = self.positional_embedding.call()
         
         if self.plot_posemb:
-            plot_positional_embedding(self.positional_embedding, self.len_input_text, self.d_model)
+            plot_positional_embedding(self.positional_encoding, self.input_sequence_length, self.d_model)
 
-        self.multi_head_attn = MultiHeadAttention(positional_embedding=self.positional_embedding,
-                                                  len_input_text=self.len_input_text,
+        self.multi_head_attn = MultiHeadAttention(positional_encoding=self.positional_encoding,
+                                                  input_sequence_length=self.input_sequence_length,
                                                   d_model=self.d_model,
-                                                  output_dim=self.output_dim,
+                                                  batch_size=self.batch_size,
                                                   heads=self.heads).forward()
         
         self.add_norm = AddAndNorm(input_dim=self.d_model)
-        self.add_and_norm_output = self.add_norm.forward(pos_embeding=self.positional_embedding, multi_head_output=self.multi_head_attn, residual=self.positional_embedding)
+        self.add_and_norm_output = self.add_norm.forward(positional_encoding=self.positional_encoding, multi_head_output=self.multi_head_attn, residual=self.positional_encoding)
         self.feed_forward_output = FeedForward(input_dim=self.d_model, output_dim=self.d_model, activation='relu').forward(x=self.add_and_norm_output)
         
         return self.feed_forward_output
