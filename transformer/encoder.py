@@ -120,9 +120,9 @@ class Encoder(MultiHeadAttention):
                                                             residual=layer_normalization_output
                                                             )
         
-        encoder_output = feed_forward_output_norm
+        Q_output, K_output = (feed_forward_output_norm, feed_forward_output_norm)
         
-        return encoder_output
+        return Q_output, K_output
 
     def create_padding_mask(self, input_sequence):
         mask = np.zeros((self.batch_size, 1, self.input_sequence_length), dtype=bool)
