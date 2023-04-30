@@ -74,10 +74,7 @@ class Encoder(MultiHeadAttention):
         input_sequence = input_sequence.reshape(self.batch_size, -1) # add batch dimension
 
         # Create mask for padding
-        mask = np.zeros((self.batch_size, 1, self.input_sequence_length), dtype=bool)
-        for i in range(self.input_sequence_length):
-            if input_sequence[0, i] == self.tokenizer.word2idx['<pad>']:
-                mask[0][0][i] = True
+        mask = self.create_padding_mask(input_sequence)
 
         # Get positional encoding
         self.positional_encoding = self.positional_embedding.call()
@@ -94,7 +91,17 @@ class Encoder(MultiHeadAttention):
         self.layer_normalization = LayerNormalization(normalized_shape=self.d_model)
         multi_head_output = self.multi_head_attn()
         layer_normalization_output = self.layer_normalization(positional_encoding=self.positional_encoding, multi_head_output=multi_head_output, residual=self.positional_encoding)
-        feed_forward = FeedForward(input_dim=self.d_model, output_dim=self.d_model, activation='relu')
-        feed_forward_output = feed_forward(x=layer_normalization_output)
+        feed_forward_output = self.calculate_feed_forward_output(layer_normalization_output)
         
         return feed_forward_output
+
+    def create_padding_mask(self, input_sequence):
+        mask = np.zeros((self.batch_size, 1, self.input_sequence_length), dtype=bool)
+        for i in range(self.input_sequence_length):
+            if input_sequence[0, i] == self.tokenizer.word2idx['<pad>']:
+                mask[0][0][i] = True
+        return mask
+
+    def calculate_feed_forward_output(self, input_tensor):
+        feed_forward = FeedForward(input_dim=self.d_model, output_dim=self.d_model, activation='relu')
+        return feed_forward(x=input_tensor)
