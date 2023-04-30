@@ -108,6 +108,18 @@ class Linear(Layer):
         # Calculate dot product between the input (x) and the weight (w)
         output = np.matmul(inputs, self.weight.T)
         return output
+class Dropout(Layer):
+    def __init__(self, dropout_rate: float):
+        super().__init__()
+        self.dropout_rate = dropout_rate
+        self.dropout_mask = None
+
+    def __call__(self, inputs: np.ndarray) -> np.ndarray:
+        # Compute the mask for dropout
+        self.dropout_mask = np.random.binomial(1, 1 - self.dropout_rate, size=inputs.shape)
+        # Scale the input by the dropout mask
+        output = inputs * self.dropout_mask
+        return output
 
 class Attention(Linear): # Also called ScaledDotProduct
     def  __init__(self, 
@@ -155,7 +167,8 @@ class Attention(Linear): # Also called ScaledDotProduct
         output = np.matmul(attn_filter, value[:, :self.d_k])
         
         return output
-    
+
+
 class MultiHeadAttention(Attention):
     def __init__(self,
                  positional_encoding: np.ndarray,
