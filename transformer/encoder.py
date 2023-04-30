@@ -89,14 +89,21 @@ class Encoder(MultiHeadAttention):
                                                   d_model=self.d_model,
                                                   batch_size=self.batch_size,
                                                   heads=self.heads)
-        
-        self.dropout_layer = Dropout(dropout_rate=self.drop_rate) 
-        
-        self.layer_normalization = LayerNormalization(normalized_shape=self.d_model)
         multi_head_output = self.multi_head_attn()
+
+        self.dropout_layer = Dropout(dropout_rate=self.drop_rate) 
         multi_head_output = self.dropout_layer(multi_head_output)
+
+        self.layer_normalization = LayerNormalization(normalized_shape=self.d_model)
         layer_normalization_output = self.layer_normalization(positional_encoding=self.positional_encoding, multi_head_output=multi_head_output, residual=self.positional_encoding)
         feed_forward_output = self.calculate_feed_forward_output(layer_normalization_output)
+
+        # Add residual connection
+        feed_forward_output += layer_normalization_output
+
+        # Normalize output
+        self.layer_normalization = LayerNormalization(normalized_shape=self.d_model)
+        feed_forward_output = self.layer_normalization(positional_encoding=self.positional_encoding, multi_head_output=feed_forward_output, residual=layer_normalization_output)
         
         return feed_forward_output
 
