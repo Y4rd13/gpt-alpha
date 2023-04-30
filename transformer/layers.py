@@ -8,7 +8,7 @@ class Tokenizer:
         self.word2idx = {} # Dictionary to store the word to index mapping
         self.index2word = {} # Dictionary to store the index to word mapping
     
-    def call(self, input_text: str):
+    def tokenize(self, input_text: str):
         self.__create_word_index_mapping(input_text) # create word to index and index to word mapping
 
     def __create_word_index_mapping(self, input_text: str):
@@ -16,24 +16,25 @@ class Tokenizer:
         for i, word in enumerate(words):
             self.word2idx[word] = i
             self.index2word[i] = word
+        self.word2idx['<pad>'] = len(self.word2idx) # add padding token to the dictionary
 class PositionalEmbedding:
-    def __init__(self, d_model: int, len_input_text: int):
+    def __init__(self, d_model: int, input_sequence_length: int):
         self.d_model = d_model
-        self.len_input_text = len_input_text
+        self.input_sequence_length = input_sequence_length
         self.n = 10000 # Constant for the sinusoidal functions: max number of words in a sentence used in Attention is All You Need paper.
     
-    def call(self, input_text: str):
+    def call(self, input_sequence: str):
         # Get initial embedding and positional encoding
-        initial_embedding = self.__get_rand_embedding(input_text) # get random initial embedding
+        initial_embedding = self.__get_rand_embedding() # get random initial embedding
         positional_encoding = self.__get_positional_encoding() # get positional encoding
         positional_embedding = np.add(initial_embedding, positional_encoding) # add positional encoding to initial embedding
         return positional_embedding
 
     def __get_positional_encoding(self):
         embedding_dim = self.d_model
-        pos_enc = np.zeros((self.len_input_text, self.d_model))
+        pos_enc = np.zeros((self.input_sequence_length, self.d_model))
 
-        for pos in range(self.len_input_text):
+        for pos in range(self.input_sequence_length):
             for i in range(embedding_dim):
                 if not i % 2:
                     pos_enc[pos, i] = np.sin(pos / ((self.n ** (2 * i)) / self.d_model))
@@ -41,10 +42,9 @@ class PositionalEmbedding:
                     pos_enc[pos, i] = np.cos(pos / ((self.n ** (2 * i)) / self.d_model))
         return pos_enc
 
-    def __get_rand_embedding(self, input_text: str):
+    def __get_rand_embedding(self):
         # random initial weights
-        self.len_input_text = len(input_text.split())
-        initial_embedding = np.random.randn(self.len_input_text, self.d_model)
+        initial_embedding = np.random.randn(self.input_sequence_length, self.d_model)
         return initial_embedding
 
 class LinearLayer:
@@ -64,9 +64,9 @@ class LinearLayer:
 
         return output
 class ScaledDotProduct(LinearLayer):
-    def  __init__(self, positional_encoding, len_input_text, d_model, output_dim, mask=None):
+    def  __init__(self, positional_encoding, input_sequence_length, d_model, output_dim, mask=None):
         self.positional_encoding = positional_encoding
-        self.input_dim = len_input_text
+        self.input_dim = input_sequence_length
         self.output_dim = output_dim
         self.num_heads = d_model
         self.mask = mask
@@ -105,15 +105,18 @@ class ScaledDotProduct(LinearLayer):
         return e_x / e_x.sum(axis=-1, keepdims=True) # keepdims to keep same shape and axis=-1 to sum over last axis
     
 class MultiHeadAttention(ScaledDotProduct):
-    def __init__(self, positional_encoding, len_input_text, d_model, output_dim, heads, mask=None) -> None:
-        super().__init__(positional_encoding, len_input_text, d_model, output_dim, mask)
-        self.len_input_text = len_input_text
+    def __init__(self, positional_encoding, input_sequence_length, d_model, output_dim, heads, mask=None) -> None:
+        super().__init__(positional_encoding, input_sequence_length, d_model, output_dim, mask)
+        self.input_sequence_length = input_sequence_length
         self.d_model = d_model
         self.heads = heads
         assert self.d_model % self.heads == 0, "Number of heads must be a multiple of the model dimension"
 
         # Create multi-head attention object with Q, K, V, and output weights
-        self.scaled_dot_prod = ScaledDotProduct(positional_encoding=self.positional_encoding, len_input_text=self.len_input_text, d_model=self.d_model, output_dim=self.d_model)
+        self.scaled_dot_prod = ScaledDotProduct(positional_encoding=self.positional_encoding,
+                                                input_sequence_length=self.input_sequence_length, 
+                                                d_model=self.d_model, 
+                                                output_dim=self.d_model)
     
     def forward(self):
         # Apply multi-head attention
@@ -131,7 +134,7 @@ class MultiHeadAttention(ScaledDotProduct):
         # where W^O is a weight matrix that projects the concatenated vector to the expected dimension of the model (d_model). (Attention is all you need, page 5).
         print(f'concat_value: {concat_value.shape} . size: {concat_value.size}')
         print(f'filtered_value: {filtered_value.shape} . size: {filtered_value.size}')
-        print(f'len_input_text: {self.len_input_text} . d_model: {self.d_model} . heads: {self.heads}')
+        print(f'len_input_text: {self.input_sequence_length} . d_model: {self.d_model} . heads: {self.heads}')
         print('-'*50)
 
         # Here, instead of concatenating the arrays vertically in filtered_value, 
