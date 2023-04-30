@@ -1,8 +1,3 @@
-
-'''
-TODO:
-    - Define the input_dim and output_dim for the AddAndNorm layer and FeedForward layer.
-'''
 import sys
 import numpy as np
 from layers import *
@@ -12,7 +7,7 @@ class Encoder(MultiHeadAttention):
     def __init__(self, 
                  input_text: str, 
                  d_model: int, 
-                 heads: int, 
+                 heads: int,
                  plot_posemb: bool = False
                  ):
         self.input_text = input_text.lower()
@@ -24,6 +19,8 @@ class Encoder(MultiHeadAttention):
         self.d_model = d_model
         self.heads = heads
         self.output_dim = d_model * heads
+        self.batch_size = 1
+
         self.plot_posemb = plot_posemb
     
 
@@ -31,20 +28,16 @@ class Encoder(MultiHeadAttention):
         # Convert input sequence to numpy array
         self.positional_embedding = PositionalEmbedding(d_model=self.d_model, input_sequence_length=self.input_sequence_length)
         input_sequence = np.array([self.tokenizer.word2idx[word] for word in self.input_sequence])
-        input_sequence = input_sequence.reshape(1, -1) # add batch dimension
+        input_sequence = input_sequence.reshape(self.batch_size, -1) # add batch dimension
 
         # Create mask for padding
-        mask = np.zeros((1, 1, self.input_sequence_length), dtype=bool)
+        mask = np.zeros((self.batch_size, 1, self.input_sequence_length), dtype=bool)
         for i in range(self.input_sequence_length):
             if input_sequence[0, i] == self.tokenizer.word2idx['<pad>']:
                 mask[0][0][i] = True
-        
-        print(f'input_sequence: {input_sequence}')
-        print(f'word2idx: {self.tokenizer.word2idx}')
-        print(f'mask: {mask}')
 
         # Get positional encoding
-        self.positional_encoding = self.positional_embedding.call(input_sequence=input_sequence)
+        self.positional_encoding = self.positional_embedding.call()
         
         if self.plot_posemb:
             plot_positional_embedding(self.positional_encoding, self.input_sequence_length, self.d_model)
@@ -52,7 +45,7 @@ class Encoder(MultiHeadAttention):
         self.multi_head_attn = MultiHeadAttention(positional_encoding=self.positional_encoding,
                                                   input_sequence_length=self.input_sequence_length,
                                                   d_model=self.d_model,
-                                                  output_dim=self.output_dim,
+                                                  batch_size=self.batch_size,
                                                   heads=self.heads).forward()
         
         self.add_norm = AddAndNorm(input_dim=self.d_model)

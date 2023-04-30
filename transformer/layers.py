@@ -23,7 +23,7 @@ class PositionalEmbedding:
         self.input_sequence_length = input_sequence_length
         self.n = 10000 # Constant for the sinusoidal functions: max number of words in a sentence used in Attention is All You Need paper.
     
-    def call(self, input_sequence: str):
+    def call(self):
         # Get initial embedding and positional encoding
         initial_embedding = self.__get_rand_embedding() # get random initial embedding
         positional_encoding = self.__get_positional_encoding() # get positional encoding
@@ -64,12 +64,13 @@ class LinearLayer:
 
         return output
 class ScaledDotProduct(LinearLayer):
-    def  __init__(self, positional_encoding, input_sequence_length, d_model, output_dim, mask=None):
+    def  __init__(self, positional_encoding, input_sequence_length, heads, output_dim, mask=None):
         self.positional_encoding = positional_encoding
         self.input_dim = input_sequence_length
         self.output_dim = output_dim
-        self.num_heads = d_model
+        self.heads = heads
         self.mask = mask
+        self.d_k = self.output_dim // self.heads
 
         super().__init__(self.input_dim, self.output_dim)
 
@@ -77,7 +78,7 @@ class ScaledDotProduct(LinearLayer):
         self.Wq = LinearLayer(self.input_dim, self.output_dim)
         self.Wk = LinearLayer(self.input_dim, self.output_dim)
         self.Wv = LinearLayer(self.input_dim, self.output_dim)
-        self.Wo = LinearLayer(self.num_heads * self.output_dim, self.output_dim, input_size=self.input_dim)
+        self.Wo = LinearLayer(self.heads * self.output_dim, self.output_dim, input_size=self.input_dim)
 
     def forward(self):
         query = self.Wq.forward(self.positional_encoding)
@@ -88,7 +89,7 @@ class ScaledDotProduct(LinearLayer):
         output = np.matmul(query, key.T)
         
         # Normalization of the output scores
-        scores = output / np.sqrt(self.output_dim) # self.output_dim/self.num_heads? 
+        scores = output / np.sqrt(self.output_dim // self.heads) # self.output_dim/self.num_heads? 
 
         if self.mask is not None:
             scores += -1e9 * self.mask
@@ -96,7 +97,7 @@ class ScaledDotProduct(LinearLayer):
         attn_filter = self.softmax(x=scores)
 
         # Apply attention to values
-        output = np.matmul(attn_filter, value) # value.T? 
+        output = np.matmul(attn_filter, value[:, :self.d_k])
         
         return output
 
@@ -105,47 +106,38 @@ class ScaledDotProduct(LinearLayer):
         return e_x / e_x.sum(axis=-1, keepdims=True) # keepdims to keep same shape and axis=-1 to sum over last axis
     
 class MultiHeadAttention(ScaledDotProduct):
-    def __init__(self, positional_encoding, input_sequence_length, d_model, output_dim, heads, mask=None) -> None:
-        super().__init__(positional_encoding, input_sequence_length, d_model, output_dim, mask)
+    def __init__(self,
+                 positional_encoding,
+                 input_sequence_length, 
+                 d_model, 
+                 heads,
+                 batch_size, 
+                 mask=None) -> None:
+        super().__init__(positional_encoding, input_sequence_length, d_model, d_model // heads, mask)
+
         self.input_sequence_length = input_sequence_length
         self.d_model = d_model
+        self.output_dim = d_model
         self.heads = heads
+        self.batch_size = batch_size
         assert self.d_model % self.heads == 0, "Number of heads must be a multiple of the model dimension"
 
         # Create multi-head attention object with Q, K, V, and output weights
         self.scaled_dot_prod = ScaledDotProduct(positional_encoding=self.positional_encoding,
                                                 input_sequence_length=self.input_sequence_length, 
-                                                d_model=self.d_model, 
-                                                output_dim=self.d_model)
+                                                heads=self.heads, 
+                                                output_dim=self.output_dim)
     
     def forward(self):
         # Apply multi-head attention
         filtered_value = np.array([self.scaled_dot_prod.forward() for _ in range(self.heads)])
-        print('filtered_value elements: ', filtered_value.shape)
-        print([filtered_value[i].shape for i in range(self.heads)])
 
         # Concatenate
         # axis=0 to concatenate vertically, axis=1 to concatenate horizontally, axis=-1 to concatenate over the last axis
         concat_value = np.concatenate(filtered_value, axis=-1)
 
-        # Reshape
-        # Reshape the concatenated value to the original shape of the input text, but with the dimension of the model as the last dimension to be able to apply the linear layer
-        # and get the output of the multi-head attention layer Concat(head1, ..., headh)W^O,
-        # where W^O is a weight matrix that projects the concatenated vector to the expected dimension of the model (d_model). (Attention is all you need, page 5).
-        print(f'concat_value: {concat_value.shape} . size: {concat_value.size}')
-        print(f'filtered_value: {filtered_value.shape} . size: {filtered_value.size}')
-        print(f'len_input_text: {self.input_sequence_length} . d_model: {self.d_model} . heads: {self.heads}')
-        print('-'*50)
-
-        # Here, instead of concatenating the arrays vertically in filtered_value, 
-        # they are concatenating horizontally with axis=-1. 
-        # The concat_value is then reshaped to (batch_size, num_heads, len_input_text, d_model) using the reshape function, where batch_size is -1 to automatically adjust to the size of the input.
-        
-        #concat_value = concat_value.reshape(-1, self.heads, self.len_input_text, self.d_model) 
-
-
         # Apply linear layer
-        output = self.scaled_dot_prod.Wo.forward(concat_value).T
+        output = self.scaled_dot_prod.Wo.forward(concat_value.reshape(self.batch_size, self.input_sequence_length, self.d_model)).T
         
         return output
     
