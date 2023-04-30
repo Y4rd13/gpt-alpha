@@ -2,10 +2,9 @@
 https://nn.labml.ai/normalization/layer_norm/index.html
 '''
 import numpy as np
-from activations import ReLU, Softmax
+from activations import Activation
+from activations import Softmax
 from typing import List
-
-relu = ReLU()
 softmax = Softmax()
 class Layer:
     def __init__(self, name: str = None, dtype=None, trainable=True,
@@ -44,6 +43,14 @@ class Layer:
     def non_trainable_weights(self) -> List[np.ndarray]:
         # Returns the non trainable weights of the layer.
         return []
+
+    @staticmethod
+    def get_activation(activation):
+        activations = {cls.__name__.lower(): cls for cls in Activation.__subclasses__()}
+        if activation.lower() in activations:
+            return activations[activation.lower()]()
+        else:
+            raise ValueError(f"Activation function '{activation}' not found")
 
     def get_weights(self) -> List[np.ndarray]:
         # Returns the current weights of the layer.
@@ -109,7 +116,7 @@ class Linear(Layer):
         return self.forward(inputs)
 
 class ScaledDotProduct(Linear):
-    def  __init__(self, positional_encoding, input_sequence_length, heads, output_dim, mask=None):
+    def  __init__(self, positional_encoding, input_sequence_length, heads, output_dim, mask=None, activation='softmax'):
         self.positional_encoding = positional_encoding
         self.input_dim = input_sequence_length
         self.output_dim = output_dim
@@ -125,6 +132,10 @@ class ScaledDotProduct(Linear):
         self.Wv = Linear(self.input_dim, self.output_dim)
         self.Wo = Linear(self.heads * self.output_dim, self.output_dim, input_size=self.input_dim)
 
+        # Check if specified activation function is available
+        self.activation_fn = Layer.get_activation(activation)
+
+
     def forward(self):
         query = self.Wq.forward(self.positional_encoding)
         key = self.Wk.forward(self.positional_encoding)
@@ -139,7 +150,7 @@ class ScaledDotProduct(Linear):
         if self.mask is not None:
             scores += -1e9 * self.mask
 
-        attn_filter = softmax(scores, axis=-1, keepdims=True)
+        attn_filter = self.activation_fn(scores, axis=-1, keepdims=True)
 
         # Apply attention to values
         output = np.matmul(attn_filter, value[:, :self.d_k])
@@ -167,7 +178,9 @@ class MultiHeadAttention(ScaledDotProduct):
         self.scaled_dot_prod = ScaledDotProduct(positional_encoding=self.positional_encoding,
                                                 input_sequence_length=self.input_sequence_length, 
                                                 heads=self.heads, 
-                                                output_dim=self.output_dim)
+                                                output_dim=self.output_dim,
+                                                mask=None,
+                                                activation='softmax')
     
     def forward(self):
         # Apply multi-head attention
@@ -182,8 +195,9 @@ class MultiHeadAttention(ScaledDotProduct):
         
         return output
     
-class AddAndNorm:
+class AddAndNorm(Layer):
     def __init__(self, input_dim: int):
+        super().__init__()
         self.input_dim = input_dim
         self.epsilon = 1e-8 # 1e-8 to avoid division by zero
 
@@ -209,9 +223,10 @@ class AddAndNorm:
         output += residual #encoder.positional_embedding
 
         return output
-
+    
 class FeedForward(Linear):
-    def __init__(self, input_dim: int, output_dim: int):
+    def __init__(self, input_dim: int, output_dim: int, activation: str):
+        self.activation_fn = Layer.get_activation(activation)
         self.linear_layer_1 = Linear(input_dim, output_dim)
         self.linear_layer_2 = Linear(input_dim, output_dim)
 
@@ -219,10 +234,10 @@ class FeedForward(Linear):
         # Apply linear layer
         linear_layer_1 = self.linear_layer_1.forward(x)
 
-        # Apply ReLu activation function 
-        linear_layer_1_act = relu(linear_layer_1)
+        # Apply activation function
+        activation_layer_1 = self.activation_fn(linear_layer_1)
 
         # Apply linear layer
-        linear_layer_2 = self.linear_layer_2.forward(linear_layer_1_act)
+        linear_layer_2 = self.linear_layer_2.forward(activation_layer_1)
 
         return linear_layer_2

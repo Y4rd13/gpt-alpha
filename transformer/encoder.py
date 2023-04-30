@@ -61,7 +61,7 @@ class Encoder(MultiHeadAttention):
         
         self.add_norm = AddAndNorm(input_dim=self.d_model)
         self.add_and_norm_output = self.add_norm.forward(positional_encoding=self.positional_encoding, multi_head_output=self.multi_head_attn, residual=self.positional_encoding)
-        self.feed_forward_output = FeedForward(input_dim=self.d_model, output_dim=self.d_model).forward(x=self.add_and_norm_output)
+        self.feed_forward_output = FeedForward(input_dim=self.d_model, output_dim=self.d_model, activation='relu').forward(x=self.add_and_norm_output)
         return self.feed_forward_output
 
 def test_encoder(input_text, heads, power, iter):
