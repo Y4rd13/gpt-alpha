@@ -218,12 +218,9 @@ class LayerNormalization(Layer): # Also called AddAndNorm or Residual
         self.gamma = self.add_weight(name='gamma', shape=self.normalized_shape, initializer='ones')
         self.beta = self.add_weight(name='beta', shape=self.normalized_shape, initializer='zeros')
 
-    def __call__(self, positional_encoding: np.ndarray, multi_head_output: np.ndarray, residual: np.ndarray) -> np.ndarray:
-        # Check if the shape of the positional encoding is equal to the normalized shape
-        assert self.normalized_shape == positional_encoding.shape[-len(self.normalized_shape):]
-        
+    def __call__(self, normalize: np.ndarray, residual: np.ndarray) -> np.ndarray:
         # Adds the positional embedding and the multi head attention output.
-        x = positional_encoding + multi_head_output
+        x = normalize + residual
 
         # Calculate mean and variance of input x
         mean = np.mean(x, axis=1, keepdims=True)
