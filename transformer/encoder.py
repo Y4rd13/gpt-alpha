@@ -72,7 +72,7 @@ class Encoder(MultiHeadAttention):
         try:
             logging.info(f'Encoder started: (batch_size: {self.batch_size}, d_model: {self.d_model}, heads: {self.heads}, input_sequence_length: {self.input_sequence_length}, output_dim: {self.output_dim})')
             output = self.forward()
-            logging.info(f'Encoder finished with output shape: {output.shape}')
+            logging.info(f'Encoder finished with output shape: {output[0].shape}')
             return output
         except Exception as err:
             handle_error(err)
