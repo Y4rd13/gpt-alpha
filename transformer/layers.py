@@ -121,7 +121,7 @@ class Dropout(Layer):
         output = inputs * self.dropout_mask
         return output
 
-class Attention(Linear): # Also called ScaledDotProduct
+class Attention(Layer): # Also called ScaledDotProduct
     def  __init__(self, 
                   positional_encoding: np.ndarray,
                   input_sequence_length: int, 
@@ -129,6 +129,7 @@ class Attention(Linear): # Also called ScaledDotProduct
                   output_dim: int, 
                   mask: Optional[np.ndarray] = None, 
                   activation: str = 'softmax'):
+        
         self.positional_encoding = positional_encoding
         self.input_dim = input_sequence_length
         self.output_dim = output_dim
@@ -136,7 +137,8 @@ class Attention(Linear): # Also called ScaledDotProduct
         self.mask = mask
         self.d_k = self.output_dim // self.heads
 
-        super().__init__(self.input_dim, self.output_dim)
+        super().__init__()
+        #super().__init__(self.input_dim, self.output_dim)
 
         # Initialize matrix for queries, keys, values, and output
         self.Wq = Linear(self.input_dim, self.output_dim)
@@ -169,7 +171,7 @@ class Attention(Linear): # Also called ScaledDotProduct
         return output
 
 
-class MultiHeadAttention(Attention):
+class MultiHeadAttention(Layer):
     def __init__(self,
                  positional_encoding: np.ndarray,
                  input_sequence_length: int, 
@@ -177,8 +179,11 @@ class MultiHeadAttention(Attention):
                  heads: int,
                  batch_size: int, 
                  mask: Optional[np.ndarray] = None) -> None:
-        super().__init__(positional_encoding, input_sequence_length, d_model, d_model // heads, mask)
+        
+        super().__init__()
+        #super().__init__(positional_encoding, input_sequence_length, d_model, d_model // heads, mask)
 
+        self.positional_encoding = positional_encoding
         self.input_sequence_length = input_sequence_length
         self.d_model = d_model
         self.output_dim = d_model
@@ -189,11 +194,11 @@ class MultiHeadAttention(Attention):
 
         # Create multi-head attention object with Q, K, V, and output weights
         self.attention = Attention(positional_encoding=self.positional_encoding,
-                                                input_sequence_length=self.input_sequence_length, 
-                                                heads=self.heads, 
-                                                output_dim=self.output_dim,
-                                                mask=self.mask,
-                                                activation='softmax')
+                                   input_sequence_length=self.input_sequence_length, 
+                                   heads=self.heads, 
+                                   output_dim=self.output_dim,
+                                   mask=self.mask,
+                                   activation='softmax')
     
     def __call__(self) -> np.ndarray:
         # Apply multi-head attention
