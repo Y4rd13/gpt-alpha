@@ -72,9 +72,9 @@ class PositionalEmbedding(Layer):
         self.input_sequence_length = input_sequence_length
         self.n = 10000  # Constant for the sinusoidal functions: max number of words in a sentence used in Attention is All You Need paper.
 
-    def call(self, inputs: Optional[np.ndarray] = None) -> np.ndarray:
+    def __call__(self) -> np.ndarray:
         # Get initial embedding and positional encoding
-        initial_embedding = self.__get_rand_embedding()  # get random initial embedding
+        initial_embedding = np.random.randn(self.input_sequence_length, self.d_model)  # get random initial embedding
         positional_encoding = self.__get_positional_encoding()  # get positional encoding
         positional_embedding = np.add(initial_embedding, positional_encoding)  # add positional encoding to initial embedding
         return positional_embedding
@@ -90,11 +90,6 @@ class PositionalEmbedding(Layer):
                 else:
                     pos_enc[pos, i] = np.cos(pos / ((self.n ** (2 * i)) / self.d_model))
         return pos_enc
-
-    def __get_rand_embedding(self):
-        # random initial weights
-        initial_embedding = np.random.randn(self.input_sequence_length, self.d_model)
-        return initial_embedding
 
 class Linear(Layer):
     def __init__(self, input_dim: int, output_dim: int, input_size: Optional[int] = None):

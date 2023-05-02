@@ -63,7 +63,7 @@ class Encoder(MultiHeadAttention):
         mask = self.create_padding_mask(input_sequence)
 
         ## Get positional encoding
-        self.positional_encoding = self.positional_embedding.call()
+        self.positional_encoding = self.positional_embedding()
         
         if self.plot_posemb:
             plot_positional_embedding(self.positional_encoding, self.input_sequence_length, self.d_model)
