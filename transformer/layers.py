@@ -139,7 +139,7 @@ class Attention(Layer): # Also called ScaledDotProduct
         self.Wq = Linear(self.input_dim, self.output_dim)
         self.Wk = Linear(self.input_dim, self.output_dim)
         self.Wv = Linear(self.input_dim, self.output_dim)
-        self.Wo = Linear(self.heads * self.output_dim, self.output_dim)
+        self.Wo = Linear(self.output_dim, self.heads * self.d_k)
 
         # Check if specified activation function is available
         self.activation_fn = Layer.get_activation(activation)
@@ -201,10 +201,14 @@ class MultiHeadAttention(Layer):
 
         # Concatenate
         # axis=0 to concatenate vertically, axis=1 to concatenate horizontally, axis=-1 to concatenate over the last axis
-        concat_value = np.concatenate(filtered_value, axis=-1)
+        self.d_k = self.d_model // self.heads
+        concat_value = np.concatenate(filtered_value, axis=-1).reshape(self.batch_size, self.input_sequence_length, self.d_model)
+        #concat_value = np.concatenate(filtered_value, axis=-1)
+        print(f'filtered_value.shape: {filtered_value.shape}')
+        print(f'concat_value.shape: {concat_value.shape}')
 
         # Apply linear layer
-        output = self.attention.Wo(concat_value.reshape(self.batch_size, self.input_sequence_length, self.d_model)).T
+        output = self.attention.Wo(concat_value.reshape(self.batch_size, self.input_sequence_length, self.d_model))
         
         return output
     
@@ -220,7 +224,10 @@ class LayerNormalization(Layer): # Also called AddAndNorm or Residual
 
     def __call__(self, normalize: np.ndarray, residual: np.ndarray) -> np.ndarray:
         # Adds the positional embedding and the multi head attention output.
+        print(f'normalize: {normalize.shape}')
         x = normalize + residual
+        print(f'x: {x.shape}')
+        print(f'residual: {residual.shape}')
 
         # Calculate mean and variance of input x
         mean = np.mean(x, axis=1, keepdims=True)

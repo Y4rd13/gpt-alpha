@@ -64,7 +64,8 @@ class Encoder(MultiHeadAttention):
 
         ## Get positional encoding
         self.positional_encoding = self.positional_embedding()
-        
+        print(f'positional_encoding: {self.positional_encoding.shape}')
+
         if self.plot_posemb:
             plot_positional_embedding(self.positional_encoding, self.input_sequence_length, self.d_model)
 
@@ -96,17 +97,20 @@ class Encoder(MultiHeadAttention):
         # Dropout layer
         self.dropout_layer = Dropout(dropout_rate=self.drop_rate) 
         multi_head_output = self.dropout_layer(multi_head_output)
+        print(f'multi_head_output: {multi_head_output.shape}')
 
         # Add & Norm: Add residual connection to multi-head attention output and normalize it with layer normalization
         self.layer_normalization = LayerNormalization(normalized_shape=self.d_model)
         layer_normalization_output = self.layer_normalization(
                                                               normalize=multi_head_output,
-                                                              residual=self.positional_encoding
+                                                              residual=self.positional_encoding.reshape(self.batch_size, self.input_sequence_length, self.d_model)
                                                               )
-        
+        print(f'layer_normalization_output: {layer_normalization_output.shape}')
+
         # Feed Forward layer
         feed_forward = FeedForward(input_dim=self.d_model, output_dim=self.d_model, activation='relu')
         feed_forward_output = feed_forward(x=layer_normalization_output)
+        print(f'feed_forward_output: {feed_forward_output.shape}')
 
         ## Dropout layer
         self.dropout_layer = Dropout(dropout_rate=self.drop_rate) 

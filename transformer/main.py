@@ -21,7 +21,7 @@ def main():
     print(f'd_model: {d_model}, heads: {heads}')
     encoder = Encoder(input_text, d_model, heads, plot_posemb)
     encoder_result = encoder()
-    print(f'Encoder output: {encoder_result}')
+    #print(f'Encoder output: {encoder_result}')
 
 if __name__ == '__main__':
     main()
