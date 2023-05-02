@@ -6,13 +6,14 @@ Shapes to check:
 
 - [x] Positional Embedding
 - [x] Attention
+  - [x] filtered_value
 - [x] Multi-Head Attention (MHA)
-- [ ] Dropout
-- [ ] Add & Norm
-  - [ ] Add
-  - [ ] Layer Normalization
-- [ ] Feed Forward
-- [ ] Dropout
-- [ ] Add & Norm
-  - [ ] Add
-  - [ ] Layer Normalization
+- [x] Dropout
+- [x] Add & Norm
+  - [x] Add
+  - [x] Layer Normalization
+- [x] Feed Forward
+- [x] Dropout
+- [x] Add & Norm
+  - [x] Add
+  - [x] Layer Normalization
