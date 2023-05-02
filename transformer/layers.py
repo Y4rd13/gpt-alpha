@@ -242,9 +242,10 @@ class LayerNormalization(Layer): # Also called AddAndNorm or Residual
 
         return output
     
-class FeedForward(Linear):
+class FeedForward(Layer):
     def __init__(self, input_dim: int, output_dim: int, activation: str = 'relu'):
-        super().__init__(input_dim, output_dim)
+        super().__init__()
+        # super().__init__(input_dim, output_dim)
         self.linear_layer_1 = Linear(input_dim, output_dim)
         self.linear_layer_2 = Linear(output_dim, output_dim)
         self.activation_fn = Layer.get_activation(activation)
