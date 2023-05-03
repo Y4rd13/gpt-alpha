@@ -1,9 +1,10 @@
+
 import matplotlib.pyplot as plt
 import pickle
-from traceback import print_exc
-from logging import basicConfig, DEBUG, debug
 import numpy as np
 from typing import List, Union
+
+
 
 def pad_sequences(
     sequences: List[List[Union[int, float, str]]],
@@ -62,27 +63,6 @@ def pad_sequences(
             x[i, :len(trunc)] = trunc
 
     return x
-
-
-
-def handle_error(error: Exception) -> None:
-    '''
-    Handle an exception by printing it and the traceback to the console.
-    
-    Parameters
-    ----------
-    error: Exception
-        The exception to handle.
-        
-    Returns
-    -------
-    None
-    '''
-    basicConfig(format='%(levelname)s: %(message)s', level=DEBUG)
-    print()
-    debug(f'An exception has ocurred: {str(error)}')
-    print()
-    print_exc()
 
 
 def plot_positional_embedding(positional_encoding: np.ndarray) -> None:

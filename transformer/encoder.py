@@ -1,8 +1,4 @@
-
-import sys
 import numpy as np
-import logging
-
 from preprocessing import Tokenizer
 from layers import (
     PositionalEmbedding,
@@ -15,23 +11,7 @@ from layers import (
 from utils import (
     pad_sequences,
     plot_positional_embedding, 
-    handle_error,
-    )
-
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('transformer/logs/logs.log', mode='w'),
-        logging.StreamHandler()
-    ]
 )
-
-error_logger = logging.getLogger('error')
-error_logger.setLevel(logging.ERROR)
-error_handler = logging.FileHandler('transformer/logs/error.log', mode='w')
-error_logger.addHandler(error_handler)
-
 
 class Encoder(MultiHeadAttention):
     def __init__(self, 
@@ -78,23 +58,8 @@ class Encoder(MultiHeadAttention):
             plot_positional_embedding(self.positional_encoding, self.input_sequence_length, self.d_model)
 
     def __call__(self):
-        try:
-            logging.info(f'Encoder started: (batch_size: {self.batch_size}, d_model: {self.d_model}, heads: {self.heads}, input_sequence_length: {self.input_sequence_length}, output_dim: {self.output_dim})')
-            output = self.forward()
-            # add to the logger.info the shapes of every layer output
-            logging.info(f'Encoder shapes:')
-            logging.info(f'Positional Embedding: {self.positional_encoding.shape}')
-            logging.info(f'Encoder finished with output shape: {output[0].shape}')
-            return output
-        except Exception as err:
-            handle_error(err)
-            error_logger.error(f'Error: {err} . d_model: {self.d_model}\n')
-
-            if err == 'integer division result too large for a float':
-                error_raise_message = f'Maximum floating point number exceeded. Try to reduce the value of d_model.\nCurrent maximum floating point number: {sys.float_info.max}\n'
-                error_logger.error(error_raise_message)
-                raise Exception(error_raise_message)
-            raise Exception(err)
+        output = self.forward()
+        return output
 
     def forward(self):
         # Multi-Head Attention layer 

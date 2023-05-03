@@ -1,4 +1,9 @@
 import argparse
+from debugger import (
+    handle_error,
+    log_object,
+    log_error,
+)
 from encoder import Encoder
 
 def main():
@@ -18,10 +23,16 @@ def main():
     with open(input_file, 'r') as f:
         input_text = f.read()
 
-    print(f'd_model: {d_model}, heads: {heads}')
-    encoder = Encoder(input_text, d_model, heads, plot_posemb)
-    encoder_result = encoder()
-    #print(f'Encoder output: {encoder_result}')
+    try:
+        encoder = Encoder(input_text, d_model, heads, plot_posemb)
+        encoder_result = encoder()
+        log_object(obj=encoder, output=encoder_result, exclude_attrs=['positional_encoding',
+                                                                      'positional_embedding_layer',
+                                                                      'tokenizer',
+                                                                      'input_text'])
+    except Exception as err:
+        handle_error(err)
+        log_error(err)
 
 if __name__ == '__main__':
     main()
