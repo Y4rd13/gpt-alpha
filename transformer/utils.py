@@ -5,7 +5,7 @@ from logging import basicConfig, DEBUG, debug
 import numpy as np
 from typing import List, Union
 
-def pad_sequence(
+def pad_sequences(
     sequences: List[List[Union[int, float, str]]],
     maxlen: int = None,
     dtype: str = "int32",
