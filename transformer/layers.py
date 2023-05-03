@@ -72,9 +72,9 @@ class PositionalEmbedding(Layer):
         self.input_sequence_length = input_sequence_length
         self.n = 10000  # Constant for the sinusoidal functions: max number of words in a sentence used in Attention is All You Need paper.
 
-    def call(self, inputs: Optional[np.ndarray] = None) -> np.ndarray:
+    def __call__(self) -> np.ndarray:
         # Get initial embedding and positional encoding
-        initial_embedding = self.__get_rand_embedding()  # get random initial embedding
+        initial_embedding = np.random.randn(self.input_sequence_length, self.d_model)  # get random initial embedding
         positional_encoding = self.__get_positional_encoding()  # get positional encoding
         positional_embedding = np.add(initial_embedding, positional_encoding)  # add positional encoding to initial embedding
         return positional_embedding
@@ -90,11 +90,6 @@ class PositionalEmbedding(Layer):
                 else:
                     pos_enc[pos, i] = np.cos(pos / ((self.n ** (2 * i)) / self.d_model))
         return pos_enc
-
-    def __get_rand_embedding(self):
-        # random initial weights
-        initial_embedding = np.random.randn(self.input_sequence_length, self.d_model)
-        return initial_embedding
 
 class Linear(Layer):
     def __init__(self, input_dim: int, output_dim: int, input_size: Optional[int] = None):
@@ -121,7 +116,7 @@ class Dropout(Layer):
         output = inputs * self.dropout_mask
         return output
 
-class Attention(Linear): # Also called ScaledDotProduct
+class Attention(Layer): # Also called ScaledDotProduct
     def  __init__(self, 
                   positional_encoding: np.ndarray,
                   input_sequence_length: int, 
@@ -129,6 +124,7 @@ class Attention(Linear): # Also called ScaledDotProduct
                   output_dim: int, 
                   mask: Optional[np.ndarray] = None, 
                   activation: str = 'softmax'):
+        
         self.positional_encoding = positional_encoding
         self.input_dim = input_sequence_length
         self.output_dim = output_dim
@@ -136,13 +132,14 @@ class Attention(Linear): # Also called ScaledDotProduct
         self.mask = mask
         self.d_k = self.output_dim // self.heads
 
-        super().__init__(self.input_dim, self.output_dim)
+        super().__init__()
+        #super().__init__(self.input_dim, self.output_dim)
 
         # Initialize matrix for queries, keys, values, and output
         self.Wq = Linear(self.input_dim, self.output_dim)
         self.Wk = Linear(self.input_dim, self.output_dim)
         self.Wv = Linear(self.input_dim, self.output_dim)
-        self.Wo = Linear(self.heads * self.output_dim, self.output_dim)
+        self.Wo = Linear(self.output_dim, self.heads * self.d_k)
 
         # Check if specified activation function is available
         self.activation_fn = Layer.get_activation(activation)
@@ -169,7 +166,7 @@ class Attention(Linear): # Also called ScaledDotProduct
         return output
 
 
-class MultiHeadAttention(Attention):
+class MultiHeadAttention(Layer):
     def __init__(self,
                  positional_encoding: np.ndarray,
                  input_sequence_length: int, 
@@ -177,8 +174,11 @@ class MultiHeadAttention(Attention):
                  heads: int,
                  batch_size: int, 
                  mask: Optional[np.ndarray] = None) -> None:
-        super().__init__(positional_encoding, input_sequence_length, d_model, d_model // heads, mask)
+        
+        super().__init__()
+        #super().__init__(positional_encoding, input_sequence_length, d_model, d_model // heads, mask)
 
+        self.positional_encoding = positional_encoding
         self.input_sequence_length = input_sequence_length
         self.d_model = d_model
         self.output_dim = d_model
@@ -189,11 +189,11 @@ class MultiHeadAttention(Attention):
 
         # Create multi-head attention object with Q, K, V, and output weights
         self.attention = Attention(positional_encoding=self.positional_encoding,
-                                                input_sequence_length=self.input_sequence_length, 
-                                                heads=self.heads, 
-                                                output_dim=self.output_dim,
-                                                mask=self.mask,
-                                                activation='softmax')
+                                   input_sequence_length=self.input_sequence_length, 
+                                   heads=self.heads, 
+                                   output_dim=self.output_dim,
+                                   mask=self.mask,
+                                   activation='softmax')
     
     def __call__(self) -> np.ndarray:
         # Apply multi-head attention
@@ -201,10 +201,12 @@ class MultiHeadAttention(Attention):
 
         # Concatenate
         # axis=0 to concatenate vertically, axis=1 to concatenate horizontally, axis=-1 to concatenate over the last axis
-        concat_value = np.concatenate(filtered_value, axis=-1)
+        self.d_k = self.d_model // self.heads
+        concat_value = np.concatenate(filtered_value, axis=-1).reshape(self.batch_size, self.input_sequence_length, self.d_model)
+        #concat_value = np.concatenate(filtered_value, axis=-1)
 
         # Apply linear layer
-        output = self.attention.Wo(concat_value.reshape(self.batch_size, self.input_sequence_length, self.d_model)).T
+        output = self.attention.Wo(concat_value.reshape(self.batch_size, self.input_sequence_length, self.d_model))
         
         return output
     
@@ -237,9 +239,10 @@ class LayerNormalization(Layer): # Also called AddAndNorm or Residual
 
         return output
     
-class FeedForward(Linear):
+class FeedForward(Layer):
     def __init__(self, input_dim: int, output_dim: int, activation: str = 'relu'):
-        super().__init__(input_dim, output_dim)
+        super().__init__()
+        # super().__init__(input_dim, output_dim)
         self.linear_layer_1 = Linear(input_dim, output_dim)
         self.linear_layer_2 = Linear(output_dim, output_dim)
         self.activation_fn = Layer.get_activation(activation)

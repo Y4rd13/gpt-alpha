@@ -1,5 +1,31 @@
 class Tokenizer:
-    def __init__(self, filters='!"#$%&()*+,-./:;<=>?@[\\]^_`{|}~\t\n', lower=True, split=' ', char_level=False, oov_token=None, pad_token='<pad>'):
+    def __init__(
+        self,
+        filters: str = '!"#$%&()*+,-./:;<=>?@[\\]^_`{|}~\t\n',
+        lower: bool = True,
+        split: str = ' ',
+        char_level: bool = False,
+        oov_token: str = None,
+        pad_token: str = '<pad>',
+        ):
+        """
+        Tokenizer for text data.
+
+        Parameters
+        ----------
+        filters: str
+            Characters to filter out from input text.
+        lower: bool
+            Whether to lowercase the input text.
+        split: str
+            String to split input text on.
+        char_level: bool
+            Whether to tokenize at the character-level or word-level.
+        oov_token: str
+            Token to replace out-of-vocabulary words with.
+        pad_token: str
+            Token to pad sequences with.
+        """
         self.word2idx = {}
         self.index2word = {}
         self.filters = filters
@@ -9,7 +35,19 @@ class Tokenizer:
         self.oov_token = oov_token
         self.pad_token = pad_token
     
-    def texts_to_sequences(self, input_text: str):
+    def texts_to_sequences(self, input_text: str) -> None:
+        """
+        Convert input text into sequences of integers.
+
+        Parameters
+        ----------
+        input_text: str
+            Text to tokenize.
+
+        Returns
+        -------
+        None
+        """
         # Preprocessing
         if self.lower:
             input_text = input_text.lower()
