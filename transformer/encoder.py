@@ -64,7 +64,7 @@ class Encoder(MultiHeadAttention):
 
         ## Get positional encoding
         self.positional_encoding = self.positional_embedding()
-        print(f'positional_encoding: {self.positional_encoding.shape}')
+        print(f'positional_encoding: {self.positional_encoding.shape}, type: {type(self.positional_encoding)}')
 
         if self.plot_posemb:
             plot_positional_embedding(self.positional_encoding, self.input_sequence_length, self.d_model)
@@ -124,9 +124,9 @@ class Encoder(MultiHeadAttention):
                                                             residual=layer_normalization_output
                                                             )
         
-        Q_output, K_output = (feed_forward_output_norm, feed_forward_output_norm)
+        K_output, V_output = (feed_forward_output_norm, feed_forward_output_norm)
         
-        return Q_output, K_output
+        return K_output, V_output
 
     def create_padding_mask(self, input_sequence):
         mask = np.zeros((self.batch_size, 1, self.input_sequence_length), dtype=bool)
