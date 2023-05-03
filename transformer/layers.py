@@ -204,8 +204,6 @@ class MultiHeadAttention(Layer):
         self.d_k = self.d_model // self.heads
         concat_value = np.concatenate(filtered_value, axis=-1).reshape(self.batch_size, self.input_sequence_length, self.d_model)
         #concat_value = np.concatenate(filtered_value, axis=-1)
-        print(f'filtered_value.shape: {filtered_value.shape}')
-        print(f'concat_value.shape: {concat_value.shape}')
 
         # Apply linear layer
         output = self.attention.Wo(concat_value.reshape(self.batch_size, self.input_sequence_length, self.d_model))
@@ -224,10 +222,7 @@ class LayerNormalization(Layer): # Also called AddAndNorm or Residual
 
     def __call__(self, normalize: np.ndarray, residual: np.ndarray) -> np.ndarray:
         # Adds the positional embedding and the multi head attention output.
-        print(f'normalize: {normalize.shape}')
         x = normalize + residual
-        print(f'x: {x.shape}')
-        print(f'residual: {residual.shape}')
 
         # Calculate mean and variance of input x
         mean = np.mean(x, axis=1, keepdims=True)

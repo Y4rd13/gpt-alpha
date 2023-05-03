@@ -15,23 +15,25 @@ from utils import (
 
 class Encoder(MultiHeadAttention):
     def __init__(self, 
-                 input_text: str, 
+                 input_text: str,
+                 heads: int, 
                  d_model: int, 
-                 heads: int,
-                 plot_posemb: bool = False
+                 batch_size: int = 1,
+                 drop_rate: float = .2,
+                 maxlen: int = 20,
+                 pad_token: str = '<pad>',
+                 plot_pe: bool = False
                  ):
+
+        self.input_text = input_text
         self.d_model = d_model
         self.heads = heads
         self.output_dim = d_model * heads
-        self.batch_size = 1
-        self.drop_rate = .2
-        self.maxlen = 20
-        self.pad_token = '<pad>'
-        self.plot_posemb = plot_posemb
-
-
-        self.input_text = input_text
-        #self.input_sequence = self.input_text.lower().split()
+        self.batch_size = batch_size
+        self.drop_rate = drop_rate
+        self.maxlen = maxlen
+        self.pad_token = pad_token
+        self.plot_pe = plot_pe
 
         # Tokenize input sequence
         self.tokenizer = Tokenizer(lower=True, split=' ', char_level=False, oov_token=None, pad_token=self.pad_token)
@@ -52,9 +54,8 @@ class Encoder(MultiHeadAttention):
 
         ## Get positional encoding
         self.positional_encoding = self.positional_embedding_layer()
-        print(f'positional_encoding: {self.positional_encoding.shape}, type: {type(self.positional_encoding)}')
 
-        if self.plot_posemb:
+        if self.plot_pe:
             plot_positional_embedding(self.positional_encoding, self.input_sequence_length, self.d_model)
 
     def __call__(self):
@@ -73,19 +74,16 @@ class Encoder(MultiHeadAttention):
         # Dropout layer
         dropout_layer = Dropout(dropout_rate=self.drop_rate) 
         multi_head_output = dropout_layer(multi_head_output)
-        print(f'multi_head_output: {multi_head_output.shape}')
 
         # Add & Norm: Add residual connection to multi-head attention output and normalize it with layer normalization
         layer_normalization = LayerNormalization(normalized_shape=self.d_model)
         layer_normalization_output = layer_normalization(normalize=multi_head_output,
                                                          residual=self.positional_encoding.reshape(self.batch_size, self.input_sequence_length, self.d_model)
                                                          )
-        print(f'layer_normalization_output: {layer_normalization_output.shape}')
 
         # Feed Forward layer
         feed_forward = FeedForward(input_dim=self.d_model, output_dim=self.d_model, activation='relu')
         feed_forward_output = feed_forward(x=layer_normalization_output)
-        print(f'feed_forward_output: {feed_forward_output.shape}')
 
         ## Dropout layer
         dropout_layer = Dropout(dropout_rate=self.drop_rate) 
