@@ -1,10 +1,9 @@
 import argparse
 from debugger import (
     handle_error,
-    log_object,
     log_error,
 )
-from encoder import Encoder
+from transformer import Transformer
 
 def main():
     parser = argparse.ArgumentParser(description='Encoder for Transformer model')
@@ -23,7 +22,7 @@ def main():
         input_text = f.read()
 
     try:
-        encoder = Encoder(input_text=input_text,
+        transformer_model = Transformer(input_text=input_text,
                           heads=args.heads,
                           d_model=args.d_model,
                           batch_size=args.batch_size,
@@ -31,11 +30,7 @@ def main():
                           pad_token=args.pad_token,
                           maxlen=args.maxlen,
                           plot_pe=args.plot_pe)
-        encoder_result = encoder()
-        log_object(obj=encoder, output=encoder_result, exclude_attrs=['positional_encoding',
-                                                                      'positional_embedding_layer',
-                                                                      'tokenizer',
-                                                                      'input_text'])
+        transformer_output = transformer_model()
     except Exception as err:
         handle_error(err)
         log_error(err)
