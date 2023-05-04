@@ -68,6 +68,9 @@ class Decoder:
                                                          residual=self.positional_encoding.reshape(self.batch_size, self.input_sequence_length, self.d_model)
                                                          )
         
+        # Multi-Head Attention layer
+        #multi_head_attn = MultiHeadAttention() # CONTINUE FROM HERE!
+        
         import pdb ; pdb.set_trace()
 
         # Feed Forward layer
