@@ -41,7 +41,7 @@ class Encoder(MultiHeadAttention):
         input_sequence = np.array([self.tokenizer.word2idx[word] for word in self.input_text.lower().split()])
 
         # Apply padding to input sequence
-        padded_input_sequence = pad_sequences([input_sequence], padding='post', maxlen=20, value=self.tokenizer.word2idx[self.pad_token])
+        padded_input_sequence = pad_sequences([input_sequence], padding='post', maxlen=self.maxlen, value=self.tokenizer.word2idx[self.pad_token])
 
         # Generate positional encoding for padded sequence
         self.input_sequence_length = padded_input_sequence.shape[1]
@@ -49,11 +49,8 @@ class Encoder(MultiHeadAttention):
 
         #input_sequence = input_sequence.reshape(self.batch_size, -1) # add batch dimension
 
-        ## Create mask for padding
-        #mask = self.create_padding_mask(input_sequence)
-
         ## Get positional encoding
-        self.positional_encoding = self.positional_embedding_layer()
+        self.positional_encoding = self.positional_embedding_layer().reshape(self.batch_size, self.input_sequence_length, self.d_model)
 
         if self.plot_pe:
             plot_positional_embedding(self.positional_encoding, self.input_sequence_length, self.d_model)
@@ -78,7 +75,7 @@ class Encoder(MultiHeadAttention):
         # Add & Norm: Add residual connection to multi-head attention output and normalize it with layer normalization
         layer_normalization = LayerNormalization(normalized_shape=self.d_model)
         layer_normalization_output = layer_normalization(normalize=multi_head_output,
-                                                         residual=self.positional_encoding.reshape(self.batch_size, self.input_sequence_length, self.d_model)
+                                                         residual=self.positional_encoding
                                                          )
 
         # Feed Forward layer
@@ -97,10 +94,3 @@ class Encoder(MultiHeadAttention):
         K_output, V_output = (feed_forward_output_norm, feed_forward_output_norm)
         
         return K_output, V_output
-
-    # def create_padding_mask(self, input_sequence):
-    #     mask = np.zeros((self.batch_size, 1, self.input_sequence_length), dtype=bool)
-    #     for i in range(self.input_sequence_length):
-    #         if input_sequence[0, i] == self.tokenizer.word2idx['<pad>']:
-    #             mask[0][0][i] = True
-    #     return mask

@@ -131,6 +131,7 @@ class Attention(Layer): # Also called ScaledDotProduct
         self.heads = heads
         self.mask = mask
         self.d_k = self.output_dim // self.heads
+        self.mask_value = -1e9 #float('-inf') --> will return nan if softmax is used, since exp(-inf) = 0
 
         super().__init__()
         #super().__init__(self.input_dim, self.output_dim)
@@ -150,18 +151,21 @@ class Attention(Layer): # Also called ScaledDotProduct
         value = self.Wv(self.positional_encoding)
 
         # Calculate attention scores
-        output = np.matmul(query, key.T)
+        #output = np.matmul(query, key.T)
+        output = np.matmul(query, np.transpose(key, (0, 2, 1))) 
         
         # Normalization of the output scores
         scores = output / np.sqrt(self.d_k) # self.output_dim/self.num_heads? 
 
         if self.mask is not None:
-            scores += -1e9 * self.mask
+            scores += self.mask_value * self.mask
 
         attn_filter = self.activation_fn(scores, axis=-1, keepdims=True)
 
         # Apply attention to values
-        output = np.matmul(attn_filter, value[:, :self.d_k])
+        output = np.matmul(attn_filter, value[:, :, :self.d_k])
+        #output = np.matmul(attn_filter.squeeze(-1), value[:, :, :self.d_k])
+        #output = np.matmul(attn_filter, value[:, :self.d_k])
         
         return output
 

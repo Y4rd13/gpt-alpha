@@ -67,4 +67,3 @@ def log_error(err: Exception) -> None:
         error_raise_message = f'Maximum floating point number exceeded. Try to reduce the value of d_model.\nCurrent maximum floating point number: {sys.float_info.max}\n'
         error_logger.error(error_raise_message)
         raise Exception(error_raise_message)
-    raise Exception(err)
